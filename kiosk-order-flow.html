@@ -916,26 +916,6 @@
     transform: translate(-50%, 0);
   }
 
-  /* ---------- Progress hint (subtle) ---------- */
-  .progress-hint {
-    position: absolute;
-    top: 320px;
-    left: 232px;
-    width: 840px;
-    padding: 10px 20px;
-    background: rgba(91, 174, 163, 0.12);
-    border-left: 6px solid var(--brand-secondary);
-    color: var(--gray4);
-    font-size: 22px;
-    border-radius: 6px;
-    display: none;
-    align-items: center;
-    justify-content: space-between;
-    gap: 10px;
-    z-index: 3;
-  }
-  .progress-hint.show { display: flex; }
-  .progress-hint strong { color: var(--brand-secondary); font-weight: 700; }
 </style>
 
 <div class="stage-wrap">
@@ -963,12 +943,6 @@
     <button class="type-item">開胃菜</button>
     <button class="type-item">青菜抵家</button>
     <button class="type-item">湯品</button>
-  </div>
-
-  <!-- Progress hint toward $500 -->
-  <div class="progress-hint" id="progressHint">
-    <span>再消費 <strong id="progressRemain">NT$ 500</strong> 即可獲得<strong>免費飲料</strong>贈品</span>
-    <span>🎁</span>
   </div>
 
   <!-- Menu grid -->
@@ -1254,15 +1228,6 @@
       if (qty > 0) { badgeEl.textContent = qty; menuItemEl.classList.add('in-cart'); }
       else { menuItemEl.classList.remove('in-cart'); }
     });
-
-    const paid = paidSubtotal();
-    const hint = document.getElementById('progressHint');
-    if (paid > 0 && paid < GIFT_THRESHOLD && !state.giftDeclined && state.giftQty === 0) {
-      hint.classList.add('show');
-      document.getElementById('progressRemain').textContent = 'NT$ ' + (GIFT_THRESHOLD - paid);
-    } else {
-      hint.classList.remove('show');
-    }
 
     // Also refresh cart sheet if it's open
     if (document.getElementById('cartSheet').classList.contains('show')) {
