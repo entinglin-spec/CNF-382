@@ -619,6 +619,11 @@
     padding: 0 5px;
     gap: 12px;
   }
+  /* Gift-free row: no +/- buttons, but the number still occupies the
+     same 168px column so it aligns vertically with paid rows above. */
+  .cart-row .qty.qty-static {
+    justify-content: center;
+  }
   .cart-row .qty-b {
     width: 42px;
     height: 42px;
@@ -860,7 +865,7 @@
     font-style: normal;
     color: var(--brand-secondary);
     font-weight: 700;
-    margin-left: 4px;
+    margin-right: 6px;
   }
   .gift-modal .g-buttons {
     display: flex;
@@ -1108,7 +1113,7 @@
       <div class="g-img">🥤</div>
       <div class="g-body">
         <div class="g-name">冰紅茶</div>
-        <div class="g-price"><s>$30</s><em>免費</em></div>
+        <div class="g-price"><em>免費</em><s>$30</s></div>
       </div>
     </div>
     <div class="g-buttons">
@@ -1387,6 +1392,16 @@
       : (r.hint ? `<div class="below-hint">${r.hint}</div>` : '');
     const unitCls = r.unitStrike ? 'unit-price strike' : 'unit-price';
 
+    // The free-gift row is system-controlled (its quantity is derived from
+    // the paid subtotal + user's gift.qty), so users don't manually +/- it.
+    const qtyBlock = r.kind === 'gift-free'
+      ? `<div class="qty qty-static"><div class="qty-val">${r.qty}</div></div>`
+      : `<div class="qty">
+           <button class="${minusCls}" onclick="rowMinus('${r.kind}', '${r.id}')">−</button>
+           <div class="qty-val">${r.qty}</div>
+           <button class="qty-b" onclick="rowPlus('${r.kind}', '${r.id}')">＋</button>
+         </div>`;
+
     return `
       <div class="cart-row" data-row-kind="${r.kind}" data-row-id="${r.id}">
         <div class="product">
@@ -1398,11 +1413,7 @@
         </div>
         <div class="value">
           <div class="${unitCls}">$ ${r.unit}</div>
-          <div class="qty">
-            <button class="${minusCls}" onclick="rowMinus('${r.kind}', '${r.id}')">−</button>
-            <div class="qty-val">${r.qty}</div>
-            <button class="qty-b" onclick="rowPlus('${r.kind}', '${r.id}')">＋</button>
-          </div>
+          ${qtyBlock}
           <div class="subtotal">$ ${r.subtotal}</div>
           <button class="del-b" onclick="rowDelete('${r.kind}', '${r.id}')" aria-label="刪除">
             <svg width="30" height="30" viewBox="0 0 30 30" fill="none">
