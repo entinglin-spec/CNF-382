@@ -216,6 +216,7 @@
   .food-4 { background: linear-gradient(135deg, #F5E0BF, #C48549); }
   .food-5 { background: linear-gradient(135deg, #E4C297, #A2622F); }
   .food-6 { background: linear-gradient(135deg, #EFD5B0, #B37337); }
+  .food-drink { background: #FFF8CE; }
 
   /* ---------- Footer / Menu ---------- */
   .footer {
@@ -1110,6 +1111,7 @@
     { id: 'n4', name: '清燉三寶麵',       price: 290, img: '🍜', cls: 'food-4', desc: '牛腱、牛筋及牛肚一次滿足，三種口感層次分明，搭配清爽湯頭，是老饕的最愛。' },
     { id: 'n5', name: '清燉牛筋麵',       price: 240, img: '🍲', cls: 'food-5', desc: '牛筋熬煮至琥珀色澤，入口即化，膠質豐富，是愛好牛筋饕客的首選。' },
     { id: 'n6', name: '清燉牛肚麵',       price: 240, img: '🥣', cls: 'food-6', desc: '牛肚滷煮至滑嫩，久嚼不老，湯頭鮮甜，簡單卻回味無窮。' },
+    { id: 'n7', name: '冰紅茶',           price: 30,  img: '🥤', cls: 'food-drink', desc: '嚴選錫蘭紅茶葉現沖冷萃，甘醇不澀，冰塊將香氣鎖在杯中，是搭配牛肉麵的最佳解膩之選。' },
   ];
 
   const GIFT_THRESHOLD = 500;
@@ -1117,26 +1119,28 @@
 
   /* ---------- State ---------- */
   const state = {
-    cart: {},         // { id: qty } — paid menu items
-    giftQty: 0,       // total quantity of gift item user holds in cart
-    giftShown: false, // has the auto-popup fired
+    cart: {},           // { id: qty } — every item lives here, including 冰紅茶.
+    giftEntitled: false,// user has redeemed 1 free 冰紅茶 (auto or via popup)
+    giftShown: false,   // one-shot latch: has the popup fired this run
     giftDeclined: false,
     currentItemId: null,
     currentQty: 1,
   };
 
   /* ---------- Derived state helpers ---------- */
+  // "trigger subtotal" — sum of cart at marked prices, BEFORE deducting the
+  // free 冰紅茶. Threshold check uses this so eligibility can't oscillate.
   function paidSubtotal() {
     return Object.entries(state.cart)
       .reduce((sum, [id, qty]) => sum + (MENU.find(m => m.id === id).price * qty), 0);
   }
-  function itemCount() {
-    return Object.values(state.cart).reduce((s, n) => s + n, 0) + state.giftQty;
-  }
+  function itemCount()    { return Object.values(state.cart).reduce((s, n) => s + n, 0); }
   function thresholdMet() { return paidSubtotal() >= GIFT_THRESHOLD; }
-  function freeGiftQty()  { return (state.giftQty > 0 && thresholdMet()) ? 1 : 0; }
-  function paidGiftQty()  { return state.giftQty - freeGiftQty(); }
-  function grandTotal()   { return paidSubtotal() + paidGiftQty() * GIFT.originalPrice; }
+  function n7Qty()        { return state.cart['n7'] || 0; }
+  // 1 unit of 冰紅茶 becomes free when entitled AND cart has at least one.
+  function freeN7Qty()    { return (state.giftEntitled && thresholdMet() && n7Qty() > 0) ? 1 : 0; }
+  function paidN7Qty()    { return n7Qty() - freeN7Qty(); }
+  function grandTotal()   { return paidSubtotal() - freeN7Qty() * GIFT.originalPrice; }
 
   /* ---------- Render menu grid ---------- */
   function renderMenu() {
@@ -1204,10 +1208,10 @@
 
   /* ---------- Cart UI (menu screen footer + per-card badges) ---------- */
   function updateCartUI() {
-    // Re-arm the one-shot gift popup when paid subtotal drops back below the
-    // threshold and the user hasn't already claimed a gift. This lets the
-    // popup fire again if the user removes items then re-crosses $500.
-    if (!thresholdMet() && state.giftQty === 0) {
+    // Re-arm the one-shot gift popup when the trigger subtotal drops back
+    // below the threshold AND the user isn't currently entitled. This lets
+    // the popup fire again if the user removes items then re-crosses $500.
+    if (!thresholdMet() && !state.giftEntitled) {
       state.giftShown = false;
       state.giftDeclined = false;
     }
@@ -1243,10 +1247,17 @@
 
   /* ---------- Gift Modal ---------- */
   function checkGiftThreshold() {
-    if (thresholdMet() && !state.giftShown && !state.giftDeclined && state.giftQty === 0) {
+    if (!thresholdMet() || state.giftShown || state.giftDeclined || state.giftEntitled) return;
+    // If a 冰紅茶 is already in the cart, silently convert it into the gift
+    // instead of popping a modal — the user already picked it, don't nag.
+    if (n7Qty() > 0) {
+      state.giftEntitled = true;
       state.giftShown = true;
-      setTimeout(openGiftModal, 700);
+      showToast('🎁 已滿額，冰紅茶自動變成贈品');
+      return;
     }
+    state.giftShown = true;
+    setTimeout(openGiftModal, 700);
   }
   function openGiftModal() {
     document.getElementById('backdrop').classList.add('show');
@@ -1257,7 +1268,9 @@
     document.getElementById('backdrop').classList.remove('show');
   }
   function claimGift() {
-    state.giftQty = 1;
+    // Add 1 冰紅茶 to cart AND mark it as the entitled free unit.
+    state.cart['n7'] = (state.cart['n7'] || 0) + 1;
+    state.giftEntitled = true;
     closeGiftModal();
     updateCartUI();
     showToast('🎁 已領取冰紅茶（免費）');
@@ -1280,14 +1293,15 @@
   }
 
   function renderCartSheet() {
-    // Header count
     document.getElementById('cartCount').textContent = itemCount();
 
-    // Build rows
     const rows = [];
+    const freeQ = freeN7Qty();
+    const paidN7 = paidN7Qty();
 
-    // 1) Paid menu items
+    // Non-冰紅茶 items first, in insertion order.
     Object.entries(state.cart).forEach(([id, qty]) => {
+      if (id === 'n7') return;
       const item = MENU.find(m => m.id === id);
       rows.push(cartRowHTML({
         kind: 'paid',
@@ -1301,32 +1315,29 @@
       }));
     });
 
-    // 2) Gift row(s): split when needed
-    if (state.giftQty > 0) {
-      const met = thresholdMet();
-      const freeQ = freeGiftQty();
-      const paidQ = paidGiftQty();
-
-      if (paidQ > 0) {
+    // 冰紅茶 always pinned to the bottom — paid portion, then the gift row.
+    if (n7Qty() > 0) {
+      const drink = MENU.find(m => m.id === 'n7');
+      if (paidN7 > 0) {
         rows.push(cartRowHTML({
-          kind: 'gift-paid',
-          id: GIFT.id,
-          name: GIFT.name,
-          img: GIFT.img,
-          isGiftThumb: true,
-          unit: GIFT.originalPrice,
-          qty: paidQ,
-          subtotal: paidQ * GIFT.originalPrice,
+          kind: 'paid',
+          id: 'n7',
+          name: drink.name,
+          img: drink.img,
+          imgCls: drink.cls,
+          unit: drink.price,
+          qty: paidN7,
+          subtotal: drink.price * paidN7,
         }));
       }
       if (freeQ > 0) {
         rows.push(cartRowHTML({
           kind: 'gift-free',
-          id: GIFT.id + '-free',
-          name: GIFT.name,
-          img: GIFT.img,
-          isGiftThumb: true,
-          unit: GIFT.originalPrice,
+          id: 'n7-free',
+          name: drink.name,
+          img: drink.img,
+          imgCls: drink.cls,
+          unit: drink.price,
           unitStrike: true,
           qty: freeQ,
           subtotal: 0,
@@ -1336,11 +1347,9 @@
     }
 
     const list = document.getElementById('cartList');
-    if (rows.length === 0) {
-      list.innerHTML = '<div class="cart-empty">購物車還是空的</div>';
-    } else {
-      list.innerHTML = rows.join('');
-    }
+    list.innerHTML = rows.length === 0
+      ? '<div class="cart-empty">購物車還是空的</div>'
+      : rows.join('');
 
     document.getElementById('cartSubtotal').textContent = grandTotal();
     document.getElementById('cartGrand').textContent = grandTotal();
@@ -1391,33 +1400,35 @@
 
   /* ---------- Row actions ---------- */
   function rowPlus(kind, id) {
-    if (kind === 'paid') {
-      state.cart[id] = (state.cart[id] || 0) + 1;
-    } else {
-      // Any + on either gift row bumps giftQty
-      state.giftQty += 1;
-    }
+    // Only the paid row exposes +/-. Bump the underlying cart entry.
+    state.cart[id] = (state.cart[id] || 0) + 1;
     updateCartUI();
     renderCartSheet();
   }
   function rowMinus(kind, id) {
-    if (kind === 'paid') {
-      state.cart[id] = (state.cart[id] || 0) - 1;
-      if (state.cart[id] <= 0) delete state.cart[id];
-    } else {
-      state.giftQty = Math.max(0, state.giftQty - 1);
+    state.cart[id] = (state.cart[id] || 0) - 1;
+    if (state.cart[id] <= 0) {
+      delete state.cart[id];
+      // If the user just decremented 冰紅茶 to zero, they no longer have
+      // anything to receive the gift discount on — revoke entitlement.
+      if (id === 'n7') state.giftEntitled = false;
     }
     updateCartUI();
     renderCartSheet();
   }
   function rowDelete(kind, id) {
-    if (kind === 'paid') delete state.cart[id];
-    else if (kind === 'gift-free') {
-      // Deleting the free line removes just the free qty
-      state.giftQty = Math.max(0, state.giftQty - freeGiftQty());
-    } else if (kind === 'gift-paid') {
-      // Deleting the paid line removes the paid extras
-      state.giftQty = Math.max(0, state.giftQty - paidGiftQty());
+    if (kind === 'gift-free') {
+      // User gave up the free 冰紅茶 — subtract the freed unit AND revoke.
+      state.cart['n7'] = (state.cart['n7'] || 0) - 1;
+      if (state.cart['n7'] <= 0) delete state.cart['n7'];
+      state.giftEntitled = false;
+    } else if (id === 'n7') {
+      // Deleting the paid 冰紅茶 line keeps the free unit if entitled;
+      // otherwise remove the row entirely.
+      if (freeN7Qty() > 0) state.cart['n7'] = 1;
+      else { delete state.cart['n7']; state.giftEntitled = false; }
+    } else {
+      delete state.cart[id];
     }
     updateCartUI();
     renderCartSheet();
