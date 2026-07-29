@@ -1,0 +1,1740 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+<title>行動點餐流程原型</title>
+<style>
+  :root {
+    --primary: #58B6A8;
+    --secondary: #5292D9;
+    --bg: #F5F8F9;
+    --white: #FFFFFF;
+    --black: #000000;
+    --gray-2: #E1E1E1;
+    --gray-3: #8D8C8C;
+    --danger: #E24C4C;
+    --error: #FF8A80;
+    --logo-bg: #2C2F40;
+
+    --fs-xs: 12px;
+    --fs-sm: 14px;
+    --fs-md: 16px;
+    --fs-lg: 18px;
+    --fs-xl: 20px;
+    --fs-2xl: 24px;
+
+    --shadow-menu: 0 1px 1px 0 rgba(0,0,0,.15);
+    --shadow-footer: 0 -0.9px 5.4px 0 rgba(0,0,0,.16);
+    --shadow-dialog: 0 1px 2px 0 rgba(0,0,0,.25);
+    --shadow-card: 0 .5px 1px 0 rgba(0,0,0,.2);
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body { height: 100%; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang TC", "Noto Sans TC", "Helvetica Neue", Arial, sans-serif;
+    background: #222;
+    color: var(--black);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 100vh;
+    padding: 20px;
+    line-height: 1.4;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  /* Device frame — iPhone size */
+  .device {
+    width: 375px;
+    height: 812px;
+    background: var(--bg);
+    border-radius: 40px;
+    box-shadow: 0 20px 60px rgba(0,0,0,.4);
+    position: relative;
+    overflow: hidden;
+    border: 8px solid #111;
+  }
+
+  /* Status bar */
+  .status-bar {
+    height: 44px;
+    background: var(--white);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 24px 0 30px;
+    font-size: 15px;
+    font-weight: 600;
+    letter-spacing: -0.24px;
+    position: relative;
+    z-index: 10;
+  }
+  .status-bar .icons { display: flex; align-items: center; gap: 5px; }
+  .status-bar .icons svg { display: block; }
+
+  /* Screen container (scrollable) */
+  .screen {
+    position: absolute;
+    top: 44px;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: var(--bg);
+    display: none;
+    flex-direction: column;
+    overflow: hidden;
+  }
+  .screen.active { display: flex; }
+
+  .scroll-area {
+    flex: 1;
+    overflow-y: auto;
+    overflow-x: hidden;
+    -webkit-overflow-scrolling: touch;
+  }
+  .scroll-area::-webkit-scrollbar { width: 0; }
+
+  /* ==================== NAV BAR ==================== */
+  .nav-bar {
+    height: 44px;
+    background: var(--white);
+    border-bottom: 1px solid var(--gray-2);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 10px;
+    flex-shrink: 0;
+  }
+  .nav-bar .icon-btn {
+    width: 32px; height: 32px;
+    display: flex; align-items: center; justify-content: center;
+    background: none; border: none; cursor: pointer;
+  }
+  .nav-bar .lang {
+    display: flex; align-items: center; gap: 5px;
+    font-size: var(--fs-md);
+  }
+  .nav-bar .lang .globe { width: 20px; height: 20px; }
+  .nav-bar .lang .chev { width: 10px; }
+
+  .nav-bar.centered { justify-content: center; position: relative; }
+  .nav-bar.centered .back {
+    position: absolute;
+    left: 10px;
+    color: var(--primary);
+    display: flex; align-items: center; gap: 4px;
+    font-size: var(--fs-md);
+    cursor: pointer;
+  }
+  .nav-bar.centered .title {
+    font-size: var(--fs-lg);
+    font-weight: 700;
+    color: var(--primary);
+  }
+
+  /* ==================== MENU: SHOP INFO ==================== */
+  .shop-info {
+    background: var(--white);
+    padding: 10px 15px;
+    border-bottom: 1px solid var(--gray-2);
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+  .shop-logo {
+    width: 60px; height: 37px;
+    background: var(--logo-bg);
+    border-radius: 5px;
+    display: flex; align-items: center; justify-content: center;
+    color: #fff; font-size: 10px; font-weight: 700; letter-spacing: 1px;
+  }
+  .shop-logo::before {
+    content: "電小二";
+    font-size: 11px;
+  }
+  .shop-meta { flex: 1; }
+  .shop-name {
+    font-size: var(--fs-md);
+    font-weight: 700;
+    display: flex; align-items: center; gap: 4px;
+  }
+  .shop-name .info-icon {
+    width: 16px; height: 16px; color: var(--primary);
+  }
+  .shop-status {
+    display: flex; align-items: center; gap: 6px;
+    margin-top: 2px;
+  }
+  .shop-status .badge {
+    display: flex; align-items: center; gap: 4px;
+    color: var(--primary);
+    font-size: var(--fs-xs);
+    font-weight: 700;
+  }
+  .shop-status .badge svg { width: 14px; height: 14px; }
+  .shop-status .hours {
+    color: var(--gray-3);
+    font-size: var(--fs-xs);
+  }
+
+  /* Service info row */
+  .service-info {
+    background: var(--white);
+    padding: 10px 15px;
+    border-bottom: 1px solid var(--gray-2);
+    display: flex;
+    align-items: center;
+    gap: 5px;
+  }
+  .service-info .home-icon { width: 20px; height: 20px; }
+  .service-info .label { font-size: var(--fs-sm); font-weight: 700; }
+
+  /* Discount row */
+  .discount-row {
+    background: var(--white);
+    padding: 10px 15px;
+    border-bottom: 1px solid var(--gray-2);
+  }
+  .discount-input {
+    border: 1px solid var(--gray-3);
+    border-radius: 10px;
+    padding: 5px 10px;
+    display: flex; align-items: center; gap: 10px;
+    cursor: pointer;
+  }
+  .discount-input .placeholder {
+    flex: 1;
+    font-size: var(--fs-sm);
+  }
+  .discount-input .points {
+    display: flex; align-items: center; gap: 5px;
+    background: rgba(88,182,168,.12);
+    color: var(--primary);
+    font-weight: 700;
+    padding: 2px 8px;
+    border-radius: 999px;
+    font-size: var(--fs-md);
+  }
+  .discount-input .chev {
+    width: 12px;
+    color: var(--gray-3);
+  }
+
+  /* ==================== MENU CATALOG (TABS) ==================== */
+  .catalog {
+    background: var(--white);
+    display: flex;
+    align-items: center;
+    gap: 20px;
+    padding: 0 20px;
+    box-shadow: var(--shadow-menu);
+    border-bottom: 1px solid var(--gray-2);
+    overflow-x: auto;
+    overflow-y: hidden;
+    flex-shrink: 0;
+  }
+  .catalog::-webkit-scrollbar { display: none; }
+  .catalog .cat {
+    padding: 15px 0;
+    min-width: 62px;
+    display: flex; align-items: center; justify-content: center; gap: 6px;
+    font-size: var(--fs-lg);
+    color: var(--black);
+    cursor: pointer;
+    white-space: nowrap;
+    border-bottom: 3px solid transparent;
+    flex-shrink: 0;
+  }
+  .catalog .cat.active {
+    color: var(--primary);
+    font-weight: 700;
+    border-bottom-color: var(--primary);
+  }
+  .catalog .cat .leaf {
+    width: 16px; height: 16px;
+    display: inline-flex;
+  }
+
+  /* ==================== MENU LIST ==================== */
+  .menu-section {
+    background: var(--white);
+    padding: 20px;
+  }
+  .menu-section-title {
+    font-size: var(--fs-xl);
+    font-weight: 700;
+    padding-bottom: 5px;
+    border-bottom: 1px solid var(--black);
+    margin-bottom: 0;
+  }
+  .menu-item {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 8px 0;
+    border-bottom: .5px solid var(--black);
+    cursor: pointer;
+  }
+  .menu-item:last-child { border-bottom: none; }
+  .menu-item .info { flex: 1; min-width: 0; }
+  .menu-item .name {
+    font-size: var(--fs-md);
+    color: var(--black);
+    margin-bottom: 2px;
+  }
+  .menu-item .price {
+    font-size: var(--fs-sm);
+    font-weight: 700;
+    margin-bottom: 2px;
+  }
+  .menu-item .desc {
+    font-size: var(--fs-xs);
+    color: var(--gray-3);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .menu-item .thumb {
+    width: 96px; height: 72px;
+    border-radius: 4px;
+    object-fit: cover;
+    flex-shrink: 0;
+    background: #ddd;
+  }
+
+  /* ==================== FOOTER CTA ==================== */
+  .footer-cta {
+    background: var(--white);
+    padding: 8px;
+    box-shadow: var(--shadow-footer);
+    flex-shrink: 0;
+  }
+  .cta-btn {
+    height: 49px;
+    background: var(--secondary);
+    color: var(--white);
+    border-radius: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 10px 15px;
+    font-size: var(--fs-lg);
+    font-weight: 700;
+    position: relative;
+    cursor: pointer;
+    border: none;
+    width: 100%;
+  }
+  .cta-btn .count-badge {
+    position: absolute;
+    left: 15px; top: 50%;
+    transform: translateY(-50%);
+    width: 29px; height: 29px;
+    border: 1px solid var(--white);
+    display: flex; align-items: center; justify-content: center;
+    font-size: var(--fs-lg);
+    font-weight: 700;
+  }
+  .cta-btn .total {
+    position: absolute;
+    right: 15px; top: 50%;
+    transform: translateY(-50%);
+    font-size: var(--fs-lg);
+    font-weight: 700;
+  }
+  .cta-btn.checkout { background: var(--secondary); }
+
+  /* ==================== DIALOG (bottom sheet-style modal) ==================== */
+  .backdrop {
+    position: absolute;
+    inset: 0;
+    background: rgba(0,0,0,.5);
+    z-index: 20;
+    display: none;
+  }
+  .backdrop.active { display: block; }
+  .dialog {
+    position: absolute;
+    left: 18px; right: 18px;
+    top: 18px; bottom: 18px;
+    background: var(--white);
+    border-radius: 10px;
+    z-index: 30;
+    display: none;
+    flex-direction: column;
+    box-shadow: var(--shadow-dialog);
+    overflow: hidden;
+  }
+  .dialog.active { display: flex; }
+
+  .dialog-header {
+    height: 65px;
+    padding: 10px;
+    display: flex; align-items: center; justify-content: flex-end;
+    box-shadow: var(--shadow-dialog);
+    flex-shrink: 0;
+  }
+  .dialog-close {
+    width: 45px; height: 45px;
+    border-radius: 10px;
+    background: var(--white);
+    display: flex; align-items: center; justify-content: center;
+    cursor: pointer;
+    border: none;
+  }
+  .dialog-close svg { width: 20px; height: 20px; }
+
+  .dialog-body {
+    flex: 1;
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+  }
+  .dialog-body::-webkit-scrollbar { width: 0; }
+
+  .dialog-hero {
+    padding: 20px;
+    display: flex; flex-direction: column; align-items: center; gap: 10px;
+  }
+  .dialog-hero img {
+    width: 100%;
+    height: 224px;
+    object-fit: cover;
+    border-radius: 6px;
+  }
+  .dialog-hero .item-name {
+    align-self: flex-start;
+    font-size: var(--fs-2xl);
+    font-weight: 700;
+  }
+  .dialog-hero .dlg-name-block {
+    align-self: stretch;
+    display: flex; flex-direction: column;
+    gap: 6px;
+    align-items: flex-start;
+  }
+  .dlg-gift-tag {
+    background: var(--error);
+    color: var(--white);
+    padding: 2px 8px;
+    border-radius: 20px;
+    font-size: var(--fs-xs);
+    line-height: 1;
+  }
+  .qty-btn:disabled {
+    border-color: var(--gray-2);
+    color: var(--gray-2);
+    cursor: not-allowed;
+  }
+  .qty-divider {
+    display: none;
+    width: 1px;
+    height: 24px;
+    background: var(--gray-2);
+    margin: 0 8px;
+  }
+  .qty-trash {
+    display: none;
+    background: none;
+    border: none;
+    cursor: pointer;
+    padding: 4px;
+  }
+  .qty-row.gift .qty-divider,
+  .qty-row.gift .qty-trash {
+    display: block;
+  }
+
+  .qty-row {
+    height: 82px;
+    border-top: 1px solid var(--gray-2);
+    border-bottom: 1px solid var(--gray-2);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 24px;
+  }
+  .qty-btn {
+    width: 36px; height: 36px;
+    border-radius: 50%;
+    border: 1.5px solid var(--primary);
+    background: var(--white);
+    color: var(--primary);
+    font-size: 22px;
+    display: flex; align-items: center; justify-content: center;
+    cursor: pointer;
+    transition: opacity .15s;
+  }
+  .qty-btn:disabled {
+    border-color: var(--gray-2);
+    color: var(--gray-3);
+    cursor: not-allowed;
+  }
+  .qty-num {
+    font-size: var(--fs-xl);
+    font-weight: 700;
+    width: 40px;
+    text-align: center;
+  }
+
+  .attr-section {
+    display: flex; flex-direction: column;
+  }
+  .attr-title {
+    background: var(--bg);
+    padding: 10px 20px;
+    font-size: var(--fs-lg);
+    font-weight: 700;
+  }
+  .attr-body {
+    padding: 15px;
+    background: var(--white);
+  }
+  .note-input {
+    width: 100%;
+    min-height: 80px;
+    padding: 11px 15px;
+    border: 1px solid var(--gray-3);
+    border-radius: 10px;
+    font-size: var(--fs-md);
+    font-family: inherit;
+    resize: none;
+    outline: none;
+  }
+  .note-input::placeholder { color: var(--gray-3); }
+  .note-input:focus { border-color: var(--primary); }
+
+  .dialog-footer {
+    background: var(--white);
+    padding: 8px;
+    box-shadow: var(--shadow-footer);
+    flex-shrink: 0;
+  }
+  .dialog-footer .cta-btn { width: 100%; }
+
+  /* ==================== CART PAGE ==================== */
+  .cart-section {
+    background: var(--white);
+    margin-top: 8px;
+    padding: 20px;
+    box-shadow: 0 1px 0.5px 0 rgba(0,0,0,.15);
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    align-items: flex-start;
+  }
+  .cart-section:first-of-type { margin-top: 0; }
+  .cart-section > * { flex-shrink: 0; }
+  .cart-section-header {
+    display: flex; align-items: center; justify-content: space-between;
+    width: 100%;
+  }
+  .cart-items-card { width: 100%; }
+  .add-meal-hint { width: 100%; }
+  .cart-section-title {
+    font-size: var(--fs-lg);
+    font-weight: 700;
+  }
+  .cart-section-meta {
+    font-size: var(--fs-sm);
+    color: var(--black);
+    display: flex; align-items: center; gap: 5px;
+  }
+  .num-tag-outlined {
+    min-width: 24px; min-height: 24px;
+    border: 1px solid var(--gray-3);
+    color: var(--gray-3);
+    display: inline-flex; align-items: center; justify-content: center;
+    font-size: var(--fs-md);
+    font-weight: 700;
+    padding: 0 6px;
+  }
+
+  .cart-detail-toggle {
+    color: var(--primary);
+    font-size: var(--fs-md);
+    font-weight: 700;
+    display: inline-flex; align-items: center; gap: 4px;
+    margin-bottom: 10px;
+    cursor: pointer;
+    letter-spacing: -0.3px;
+  }
+  .cart-detail-toggle svg { width: 18px; height: 18px; }
+
+  /* Item list — cards stacked with gap */
+  .cart-items-card {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
+  .cart-item {
+    background: var(--bg);
+    border: 0.5px solid var(--gray-2);
+    border-radius: 10px;
+    padding: 10px;
+    display: flex; align-items: flex-start; gap: 10px;
+    box-shadow: 0 0.5px 2px 0 rgba(0,0,0,.2);
+    cursor: pointer;
+  }
+  .cart-item .qty-badge {
+    min-width: 24px; min-height: 24px;
+    background: var(--gray-3);
+    color: var(--white);
+    display: inline-flex; align-items: center; justify-content: center;
+    font-size: var(--fs-md);
+    font-weight: 700;
+    flex-shrink: 0;
+    padding: 0 6px;
+  }
+  .cart-item .info { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 5px; }
+  .cart-item .row-top {
+    display: flex; align-items: center; justify-content: space-between;
+    gap: 20px;
+    font-size: var(--fs-md);
+    font-weight: 700;
+    color: var(--black);
+  }
+  .cart-item .name { flex: 1; min-width: 0; }
+  .cart-item .amount { text-align: right; white-space: nowrap; }
+  .cart-item .row-bottom {
+    display: flex; align-items: flex-end; gap: 8px;
+  }
+  .cart-item .row-bottom .text {
+    flex: 1; min-width: 0;
+    display: flex; flex-direction: column; gap: 5px;
+    align-items: flex-start;
+  }
+  .cart-item .desc {
+    font-size: var(--fs-xs);
+    color: var(--gray-3);
+    line-height: 1.3;
+    white-space: pre-line;
+  }
+  .cart-item .note {
+    font-size: var(--fs-xs);
+    color: var(--primary);
+    line-height: 1.3;
+  }
+  .cart-item .remove {
+    color: var(--error);
+    font-size: var(--fs-xs);
+    font-weight: 700;
+    background: none;
+    border: none;
+    cursor: pointer;
+    width: 60px;
+    text-align: right;
+    padding: 0;
+    flex-shrink: 0;
+  }
+
+  .add-meal-hint {
+    display: flex; align-items: center; justify-content: space-between;
+    margin-top: 20px;
+    gap: 16px;
+  }
+  .add-meal-hint .hint {
+    font-size: var(--fs-xs);
+    color: var(--secondary);
+    flex: 1;
+    list-style: disc;
+    margin-left: 18px;
+  }
+  .add-meal-btn {
+    display: flex; align-items: center; gap: 5px;
+    padding: 5px 15px;
+    border: 1px solid var(--primary);
+    color: var(--primary);
+    border-radius: 20px;
+    font-size: var(--fs-sm);
+    font-weight: 700;
+    background: var(--white);
+    cursor: pointer;
+    white-space: nowrap;
+    line-height: 20px;
+  }
+
+  /* ---------- Field style (用餐資訊 + 訂購人資訊) ---------- */
+  .tf {
+    display: flex; align-items: center; justify-content: center;
+    gap: 10px;
+    height: 44px;
+    padding: 11px 15px;
+    border: 1px solid var(--gray-3);
+    border-radius: 10px;
+    background: var(--white);
+    font-size: var(--fs-md);
+    color: var(--black);
+    box-sizing: border-box;
+  }
+  .tf svg { flex-shrink: 0; }
+  .tf .val {
+    flex: 1;
+    text-align: center;
+    color: var(--black);
+    background: transparent;
+    border: none;
+    outline: none;
+    font: inherit;
+    padding: 0;
+    min-width: 0;
+  }
+  .tf .val::placeholder { color: var(--gray-3); opacity: .87; }
+  .tf.textarea {
+    height: 80px;
+    align-items: flex-start;
+    padding: 11px 15px;
+  }
+  .tf.textarea .val {
+    height: 100%;
+    text-align: left;
+    resize: none;
+    width: 100%;
+  }
+  .tf.tf-name .val { text-align: left; }
+
+  /* 用餐資訊 title row (icon + label) */
+  .dining-title {
+    display: flex; align-items: center; gap: 5px;
+    font-size: var(--fs-md);
+    color: var(--black);
+  }
+  .dining-title svg { width: 20px; height: 20px; }
+
+  .dining-fields, .phone-row {
+    display: flex; gap: 10px;
+    align-items: stretch;
+    width: 100%;
+  }
+  .dining-fields > .tf { flex: 1; min-width: 0; }
+  .phone-row .tf-code { width: 91px; flex-shrink: 0; padding: 11px 10px; }
+  .phone-row .tf-num { flex: 1; min-width: 0; }
+
+  /* ---------- Discount cards ---------- */
+  .discount-cards {
+    display: flex; gap: 10px;
+    width: 100%;
+  }
+  .dc {
+    flex: 1;
+    background: var(--bg);
+    box-shadow: var(--shadow-card);
+    padding: 10px;
+    display: flex; align-items: center; gap: 10px;
+    cursor: pointer;
+    min-width: 0;
+  }
+  .dc svg { width: 20px; height: 20px; flex-shrink: 0; }
+  .dc .label {
+    flex: 1; min-width: 0;
+    font-size: var(--fs-sm);
+    text-align: center;
+    line-height: 20px;
+    color: var(--black);
+  }
+  .dc .chev {
+    color: var(--black);
+    font-size: 14px;
+    line-height: 20px;
+    width: 10px;
+    text-align: center;
+    flex-shrink: 0;
+  }
+
+  .used-row {
+    display: flex; align-items: flex-start; gap: 10px;
+    font-size: var(--fs-sm);
+    line-height: 1.4;
+    width: 100%;
+  }
+  .used-row .used-label {
+    flex: 1; min-width: 0;
+    color: var(--gray-3);
+  }
+  .used-row .used-label b {
+    color: var(--black);
+    font-weight: 400;
+  }
+  .used-row .used-remove {
+    color: var(--error);
+    font-size: var(--fs-sm);
+    background: none;
+    border: none;
+    cursor: pointer;
+    padding: 0;
+    white-space: nowrap;
+    text-align: right;
+  }
+
+  /* ---------- Order Details ---------- */
+  .breakdown {
+    display: flex; flex-direction: column; gap: 5px;
+    width: 100%;
+  }
+  .breakdown-row {
+    display: flex; align-items: center; justify-content: space-between;
+    font-size: var(--fs-md);
+    color: var(--black);
+  }
+  .breakdown-row.discount { color: var(--primary); }
+  .breakdown-row .amount { text-align: right; }
+  .breakdown-row.discount .amount {
+    background: rgba(88,182,168,.2);
+    color: var(--primary);
+    padding: 0 5px;
+    border-radius: 5px;
+  }
+  .breakdown-divider {
+    height: 1px;
+    background: var(--gray-2);
+    width: 100%;
+    margin: 5px 0;
+  }
+  .breakdown-total {
+    display: flex; justify-content: space-between; align-items: center;
+    font-size: var(--fs-lg);
+    font-weight: 700;
+    color: var(--primary);
+  }
+  .breakdown-total .amount { color: var(--primary); }
+
+  /* ---------- Payment ---------- */
+  .pay-store {
+    font-size: var(--fs-sm);
+    color: var(--black);
+    width: 100%;
+  }
+  .pay-options {
+    display: flex; gap: 15px;
+    width: 100%;
+  }
+  .pay-opt {
+    flex: 1;
+    padding: 20px;
+    background: var(--white);
+    border-radius: 10px;
+    box-shadow: 0 1px 2px 0 rgba(0,0,0,.25);
+    display: flex; align-items: center; gap: 20px;
+    cursor: pointer;
+    font-size: var(--fs-md);
+    color: var(--black);
+    min-width: 0;
+  }
+  .pay-opt .label { flex: 1; min-width: 0; }
+  .radio {
+    width: 20px; height: 20px;
+    border-radius: 50%;
+    border: 1.5px solid var(--gray-3);
+    position: relative;
+    flex-shrink: 0;
+    box-sizing: border-box;
+  }
+  .pay-opt.selected .radio {
+    border-color: var(--primary);
+    border-width: 2px;
+  }
+  .pay-opt.selected .radio::after {
+    content: "";
+    position: absolute;
+    inset: 3px;
+    background: var(--primary);
+    border-radius: 50%;
+  }
+
+  /* ==================== GIFT DIALOG (滿額贈) ==================== */
+  .gift-dialog {
+    position: absolute;
+    left: 18px; right: 18px;
+    top: 50%;
+    transform: translateY(-50%);
+    background: var(--white);
+    border-radius: 10px;
+    z-index: 30;
+    display: none;
+    flex-direction: column;
+    overflow: hidden;
+    box-shadow: var(--shadow-dialog);
+    max-height: calc(100% - 40px);
+  }
+  .gift-dialog.active { display: flex; }
+
+  .gift-dialog .g-header {
+    height: 65px;
+    padding: 10px;
+    display: flex; align-items: center; justify-content: center;
+    box-shadow: var(--shadow-dialog);
+    flex-shrink: 0;
+  }
+  .gift-dialog .g-title {
+    font-size: var(--fs-xl);
+    font-weight: 700;
+    color: var(--black);
+    text-align: center;
+  }
+
+  .gift-dialog .g-body {
+    padding: 20px;
+    display: flex; flex-direction: column; align-items: center;
+    gap: 12px;
+  }
+  .gift-dialog .g-subtitle {
+    font-size: var(--fs-md);
+    color: var(--black);
+    text-align: center;
+  }
+  .gift-card {
+    width: 100%;
+    background: var(--white);
+    border-bottom: 1px solid var(--gray-2);
+    border-radius: 8px;
+    box-shadow: 0 1px 2px 0 rgba(0,0,0,.25);
+    padding: 15px;
+    min-height: 65px;
+    display: flex; align-items: center; gap: 15px;
+  }
+  .gift-card .g-info {
+    flex: 1; min-width: 0;
+    display: flex; flex-direction: column; gap: 2px;
+    font-size: var(--fs-md);
+    color: var(--black);
+  }
+  .gift-card .g-name {}
+  .gift-card .g-price {}
+  .gift-card .g-price .strike {
+    text-decoration: line-through;
+    color: var(--black);
+  }
+  .gift-card .g-price .free {
+    color: var(--error);
+    font-weight: 700;
+    margin-left: 4px;
+  }
+  .gift-card .g-img {
+    width: 60px; height: 45px;
+    background: #FFF8CE;
+    display: flex; align-items: center; justify-content: center;
+    flex-shrink: 0;
+    border-radius: 4px;
+  }
+  .gift-card .g-img svg { width: 40px; height: 40px; }
+
+  .gift-dialog .g-footer {
+    background: var(--white);
+    padding: 8px;
+    box-shadow: var(--shadow-footer);
+    display: flex; align-items: center; gap: 8px;
+    flex-shrink: 0;
+  }
+  .gift-dialog .g-btn {
+    flex: 1;
+    height: 46px;
+    padding: 12px 20px;
+    border-radius: 10px;
+    font-size: var(--fs-md);
+    font-weight: 700;
+    text-align: center;
+    cursor: pointer;
+    border: none;
+    box-sizing: border-box;
+  }
+  .gift-dialog .g-btn.outlined {
+    background: var(--white);
+    border: 1px solid var(--secondary);
+    color: var(--secondary);
+  }
+  .gift-dialog .g-btn.filled {
+    background: var(--secondary);
+    color: var(--white);
+    height: 49px;
+    font-size: var(--fs-lg);
+  }
+
+  /* ==================== CLAIMED BANNER ==================== */
+  .claimed-banner {
+    background: var(--primary);
+    color: var(--white);
+    font-size: var(--fs-sm);
+    box-sizing: border-box;
+    flex-shrink: 0;
+    transform: translateY(100%);
+    opacity: 0;
+    transition: transform .3s ease-out, opacity .3s ease-out, max-height .3s ease-out, padding .3s ease-out;
+    max-height: 0;
+    padding: 0 15px;
+    overflow: hidden;
+  }
+  .claimed-banner.show {
+    transform: translateY(0);
+    opacity: 1;
+    max-height: 40px;
+    padding: 8px 15px;
+  }
+
+  /* ==================== GIFT ITEM IN CART ==================== */
+  .cart-item .gift-tag {
+    display: inline-flex;
+    align-items: center;
+    background: var(--error);
+    color: var(--white);
+    padding: 2px 8px;
+    border-radius: 20px;
+    font-size: var(--fs-xs);
+    font-weight: 400;
+    line-height: 1;
+  }
+  .cart-item .amount.gift {
+    display: flex; flex-direction: row; align-items: baseline; gap: 4px;
+    justify-content: flex-end;
+  }
+  .cart-item .amount .strike {
+    color: var(--gray-3);
+    text-decoration: line-through;
+    font-size: var(--fs-md);
+    font-weight: 400;
+  }
+  .cart-item .gift-hint {
+    color: var(--error);
+    font-size: var(--fs-xs);
+    line-height: 16px;
+    max-height: 16px;
+    overflow: hidden;
+  }
+
+  /* Toast */
+  .toast {
+    position: absolute;
+    bottom: 84px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: rgba(0,0,0,.8);
+    color: #fff;
+    padding: 10px 18px;
+    border-radius: 20px;
+    font-size: var(--fs-sm);
+    z-index: 50;
+    opacity: 0;
+    transition: opacity .2s;
+    pointer-events: none;
+    white-space: nowrap;
+  }
+  .toast.show { opacity: 1; }
+
+  /* Sidebar nav toggle */
+  .side-panel {
+    position: absolute;
+    inset: 0 44% 0 0;
+    background: var(--white);
+    z-index: 40;
+    padding: 60px 20px 20px;
+    transform: translateX(-100%);
+    transition: transform .25s;
+    box-shadow: 2px 0 12px rgba(0,0,0,.15);
+  }
+  .side-panel.open { transform: translateX(0); }
+  .side-panel h3 { font-size: 14px; color: var(--gray-3); margin-bottom: 10px; }
+  .side-panel a { display: block; padding: 12px 0; font-size: 16px; color: var(--black); text-decoration: none; border-bottom: 1px solid var(--gray-2); }
+
+</style>
+</head>
+<body>
+
+<div class="device" id="device">
+
+  <!-- Status bar -->
+  <div class="status-bar">
+    <span>9:41</span>
+    <div class="icons">
+      <!-- signal -->
+      <svg width="17" height="11" viewBox="0 0 17 11"><path d="M1 8h2v2H1zM5 6h2v4H5zM9 3h2v7H9zM13 0h2v10h-2z" fill="#000"/></svg>
+      <!-- wifi -->
+      <svg width="16" height="11" viewBox="0 0 16 11"><path d="M8 10.5a1 1 0 100-2 1 1 0 000 2zM4.6 7.3a5 5 0 016.8 0l1-1a6.5 6.5 0 00-8.8 0l1 1zM1.5 4.2a9.5 9.5 0 0113 0l1-1a11 11 0 00-15 0l1 1z" fill="#000"/></svg>
+      <!-- battery -->
+      <svg width="25" height="12" viewBox="0 0 25 12"><rect x=".5" y=".5" width="21" height="11" rx="2.5" fill="none" stroke="#000" opacity=".4"/><rect x="2" y="2" width="18" height="8" rx="1.5" fill="#000"/><rect x="22.5" y="4" width="1.5" height="4" rx=".5" fill="#000" opacity=".4"/></svg>
+    </div>
+  </div>
+
+  <!-- ============== SCREEN 1: MENU ============== -->
+  <div class="screen active" id="screen-menu">
+    <!-- Nav bar: menu + language -->
+    <div class="nav-bar">
+      <button class="icon-btn" onclick="toggleSide(true)">
+        <svg width="20" height="20" viewBox="0 0 20 20" fill="none"><path d="M3 5h14M3 10h14M3 15h14" stroke="#000" stroke-width="1.8" stroke-linecap="round"/></svg>
+      </button>
+      <div class="lang">
+        <svg class="globe" width="20" height="20" viewBox="0 0 20 20" fill="none"><circle cx="10" cy="10" r="8" stroke="#000" stroke-width="1.4"/><path d="M2 10h16M10 2c2.5 3 2.5 13 0 16M10 2c-2.5 3-2.5 13 0 16" stroke="#000" stroke-width="1.2" fill="none"/></svg>
+        <span>繁體中文</span>
+        <svg class="chev" width="10" height="6" viewBox="0 0 10 6" fill="none"><path d="M1 1l4 4 4-4" stroke="#000" stroke-width="1.5" stroke-linecap="round"/></svg>
+      </div>
+    </div>
+
+    <div class="scroll-area">
+      <!-- Shop info -->
+      <div class="shop-info">
+        <div class="shop-logo"></div>
+        <div class="shop-meta">
+          <div class="shop-name">
+            電小二智慧點餐汐止店
+            <svg class="info-icon" viewBox="0 0 16 16" fill="none"><circle cx="8" cy="8" r="7" stroke="#58B6A8" stroke-width="1.3"/><circle cx="8" cy="5" r=".8" fill="#58B6A8"/><path d="M8 7v5" stroke="#58B6A8" stroke-width="1.3" stroke-linecap="round"/></svg>
+          </div>
+          <div class="shop-status">
+            <span class="badge">
+              <svg viewBox="0 0 16 16" fill="none"><circle cx="8" cy="8" r="6.5" stroke="#58B6A8" stroke-width="1.3"/><path d="M8 4.5V8l2.5 2" stroke="#58B6A8" stroke-width="1.4" stroke-linecap="round"/></svg>
+              營業中
+            </span>
+            <span class="hours">08:00–17:00</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Service type -->
+      <div class="service-info">
+        <svg class="home-icon" viewBox="0 0 20 20" fill="none"><path d="M10 3L3 8.5V17h4v-5h6v5h4V8.5L10 3z" stroke="#000" stroke-width="1.5" stroke-linejoin="round"/></svg>
+        <span class="label">外帶</span>
+      </div>
+
+      <!-- Discount input -->
+      <div class="discount-row">
+        <div class="discount-input">
+          <span class="placeholder">使用優惠/點數</span>
+          <span class="points">
+            <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><circle cx="7" cy="7" r="6" fill="#58B6A8"/><text x="7" y="10" text-anchor="middle" font-size="8" fill="#fff" font-weight="700">P</text></svg>
+            230
+          </span>
+          <svg class="chev" width="10" height="6" viewBox="0 0 10 6" fill="none"><path d="M1 1l4 4 4-4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
+        </div>
+      </div>
+
+      <!-- Catalog tabs -->
+      <div class="catalog" id="catalog">
+        <div class="cat active" data-cat="鍋類">鍋類</div>
+        <div class="cat" data-cat="單點配料">單點配料</div>
+        <div class="cat" data-cat="精選熟食">
+          <span class="leaf">
+            <svg viewBox="0 0 16 16" fill="none"><path d="M14 2C7 2 3 6 3 11c0 1 .3 2 .7 2.7L2 15.4l.7.7 1.6-1.7c.7.4 1.7.6 2.7.6 5 0 9-4 9-11z" stroke="#58B6A8" stroke-width="1.3" fill="none"/></svg>
+          </span>
+          精選熟食
+        </div>
+        <div class="cat" data-cat="牛肉">牛肉</div>
+        <div class="cat" data-cat="漢堡">漢堡</div>
+        <div class="cat" data-cat="海鮮">海鮮</div>
+      </div>
+
+      <!-- Menu section -->
+      <div class="menu-section">
+        <div class="menu-section-title">鍋類</div>
+        <div id="menu-list"></div>
+      </div>
+    </div>
+
+    <!-- Claimed banner (滑出) -->
+    <div class="claimed-banner" id="menuClaimedBanner">*已領取贈品</div>
+    <!-- Footer CTA (hidden when cart empty) -->
+    <div class="footer-cta" id="menuFooter" style="display: none;">
+      <button class="cta-btn" id="viewCartBtn" onclick="goToCart()">
+        <span class="count-badge" id="cartCount">0</span>
+        <span>檢視購物車</span>
+        <span class="total" id="cartTotal">$0</span>
+      </button>
+    </div>
+  </div>
+
+  <!-- ============== SCREEN 2: CART ============== -->
+  <div class="screen" id="screen-cart">
+    <div class="nav-bar centered">
+      <span class="back" onclick="showScreen('menu')">
+        <svg width="10" height="16" viewBox="0 0 10 16" fill="none"><path d="M8 1L2 8l6 7" stroke="#58B6A8" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      </span>
+      <span class="title">購物車</span>
+    </div>
+
+    <div class="scroll-area" style="background: var(--bg);">
+      <!-- Order items -->
+      <div class="cart-section">
+        <div class="cart-section-header">
+          <span class="cart-section-title">訂單內容</span>
+          <span class="cart-section-meta">
+            共
+            <span class="num-tag-outlined" id="cartTotalCount">0</span>
+            項商品
+          </span>
+        </div>
+        <div class="cart-detail-toggle">
+          <span>查看詳細內容</span>
+          <svg viewBox="0 0 20 20" fill="none" style="transform: rotate(180deg);"><path d="M6 12l4-4 4 4" stroke="#58B6A8" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        </div>
+        <div class="cart-items-card" id="cartItemList"></div>
+
+        <div class="add-meal-hint">
+          <span class="hint">點擊餐點項目，即可編輯餐點內容。</span>
+          <button class="add-meal-btn" onclick="showScreen('menu')">
+            <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M7 2v10M2 7h10" stroke="#58B6A8" stroke-width="1.8" stroke-linecap="round"/></svg>
+            新增餐點
+          </button>
+        </div>
+      </div>
+
+      <!-- 用餐資訊 -->
+      <div class="cart-section">
+        <div class="cart-section-title">用餐資訊</div>
+        <div class="dining-title">
+          <svg viewBox="0 0 20 20" fill="none"><rect x="2.5" y="4" width="15" height="13" rx="1.5" stroke="#000" stroke-width="1.3"/><path d="M2.5 7.5h15" stroke="#000" stroke-width="1.3"/><path d="M6.5 2v3M13.5 2v3" stroke="#000" stroke-width="1.3" stroke-linecap="round"/></svg>
+          <span>取餐時間</span>
+        </div>
+        <div class="dining-fields">
+          <div class="tf">
+            <svg width="20" height="20" viewBox="0 0 20 20" fill="none"><rect x="2" y="4" width="16" height="14" rx="1.5" stroke="#000" stroke-width="1.3"/><path d="M2 8h16" stroke="#000" stroke-width="1.3"/><path d="M6 2v4M14 2v4" stroke="#000" stroke-width="1.3" stroke-linecap="round"/></svg>
+            <input class="val" type="text" value="12/25" />
+            <svg width="20" height="20" viewBox="0 0 20 20" fill="none"><path d="M6 8l4 4 4-4" stroke="#000" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          </div>
+          <div class="tf">
+            <svg width="20" height="20" viewBox="0 0 20 20" fill="none"><circle cx="10" cy="10" r="7.5" stroke="#000" stroke-width="1.3"/><path d="M10 6v4l2.5 2" stroke="#000" stroke-width="1.3" stroke-linecap="round"/></svg>
+            <input class="val" type="text" value="14:30" />
+            <svg width="20" height="20" viewBox="0 0 20 20" fill="none"><path d="M6 8l4 4 4-4" stroke="#000" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          </div>
+        </div>
+      </div>
+
+      <!-- 訂購人資訊 -->
+      <div class="cart-section">
+        <div class="cart-section-title">訂購人資訊</div>
+        <div class="tf tf-name" style="width:100%">
+          <input class="val" type="text" value="王小明" />
+        </div>
+        <div class="phone-row">
+          <div class="tf tf-code">
+            <input class="val" type="text" value="TW+866" />
+          </div>
+          <div class="tf tf-num">
+            <input class="val" type="tel" value="0912345678" style="text-align:left" />
+          </div>
+        </div>
+        <div class="tf textarea" style="width:100%">
+          <textarea class="val" placeholder="訂單備註 (選填)"></textarea>
+        </div>
+      </div>
+
+      <!-- 使用優惠折扣 -->
+      <div class="cart-section">
+        <div class="cart-section-title">使用優惠折扣</div>
+        <div class="discount-cards">
+          <div class="dc">
+            <svg viewBox="0 0 20 20" fill="none"><path d="M2.5 8.5v-2A1.5 1.5 0 014 5h12a1.5 1.5 0 011.5 1.5v2a1.5 1.5 0 000 3v2A1.5 1.5 0 0116 15H4a1.5 1.5 0 01-1.5-1.5v-2a1.5 1.5 0 000-3z" stroke="#58B6A8" stroke-width="1.3"/><path d="M8 5v10" stroke="#58B6A8" stroke-width="1.2" stroke-dasharray="1.5 1.5"/></svg>
+            <span class="label">新增優惠券</span>
+            <span class="chev">&gt;</span>
+          </div>
+          <div class="dc">
+            <svg viewBox="0 0 20 20" fill="none"><path d="M10 2v3M5 4l2 2M15 4l-2 2M2 10c1 0 3 1 3 3 0 2-1 3-3 3M18 10c-1 0-3 1-3 3 0 2 1 3 3 3" stroke="#58B6A8" stroke-width="1.2" stroke-linecap="round"/><rect x="6" y="8" width="8" height="10" rx="1.5" stroke="#58B6A8" stroke-width="1.3"/><text x="10" y="15" text-anchor="middle" font-size="6" font-weight="700" fill="#58B6A8">P</text></svg>
+            <span class="label">查詢/兌換點數</span>
+            <span class="chev">&gt;</span>
+          </div>
+        </div>
+        <div class="used-row">
+          <span class="used-label">已使用優惠：<b>餐點配飲料 折50元</b></span>
+          <button class="used-remove">移除</button>
+        </div>
+        <div class="used-row">
+          <span class="used-label">已使用點數：<b>100 點 兌換點心</b></span>
+          <button class="used-remove">移除</button>
+        </div>
+      </div>
+
+      <!-- 訂購明細 -->
+      <div class="cart-section">
+        <div class="cart-section-title">訂購明細</div>
+        <div class="breakdown">
+          <div class="breakdown-row"><span>商品金額</span><span class="amount" id="bkSubtotal">$200</span></div>
+          <div class="breakdown-row discount"><span>優惠折扣</span><span class="amount">-$100</span></div>
+          <div class="breakdown-row discount"><span>點數折扣</span><span class="amount">-$100</span></div>
+          <div class="breakdown-row discount"><span>折扣金額</span><span class="amount">-$100</span></div>
+          <div class="breakdown-row"><span>服務費</span><span class="amount">$100</span></div>
+          <div class="breakdown-row"><span>共鍋費</span><span class="amount">$100</span></div>
+          <div class="breakdown-divider"></div>
+          <div class="breakdown-total"><span>總金額</span><span class="amount" id="bkTotal">$1,200</span></div>
+        </div>
+      </div>
+
+      <!-- 選擇付款方式 -->
+      <div class="cart-section" style="margin-bottom: 20px;">
+        <div class="cart-section-title">選擇付款方式</div>
+        <div class="pay-store">收款店家：無限廚房中和店</div>
+        <div class="pay-options">
+          <div class="pay-opt selected" data-pay="store" onclick="selectPay(this,'store')">
+            <span class="radio"></span>
+            <span class="label">店內付款</span>
+          </div>
+          <div class="pay-opt" data-pay="online" onclick="selectPay(this,'online')">
+            <span class="radio"></span>
+            <span class="label">線上付款</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Claimed banner in cart -->
+    <div class="claimed-banner" id="cartClaimedBanner">*已領取贈品</div>
+    <!-- Footer checkout -->
+    <div class="footer-cta">
+      <button class="cta-btn checkout">
+        <span class="count-badge" id="cartCount2">0</span>
+        <span>前往結帳</span>
+        <span class="total" id="checkoutTotal">$0</span>
+      </button>
+    </div>
+  </div>
+
+  <!-- ============== DIALOG (item editor) ============== -->
+  <div class="backdrop" id="backdrop" onclick="handleBackdropClick()"></div>
+  <div class="dialog" id="itemDialog">
+    <div class="dialog-header">
+      <button class="dialog-close" onclick="closeDialog()">
+        <svg viewBox="0 0 20 20" fill="none"><path d="M4 4l12 12M16 4L4 16" stroke="#000" stroke-width="2" stroke-linecap="round"/></svg>
+      </button>
+    </div>
+    <div class="dialog-body">
+      <div class="dialog-hero">
+        <img id="dlgImg" src="" alt="" />
+        <div class="dlg-name-block">
+          <div class="dlg-gift-tag" id="dlgGiftTag" style="display:none;">滿額贈</div>
+          <div class="item-name" id="dlgName">-</div>
+        </div>
+      </div>
+      <div class="qty-row" id="qtyRow">
+        <button class="qty-btn" id="qtyMinus" onclick="changeQty(-1)">−</button>
+        <span class="qty-num" id="qtyVal">1</span>
+        <button class="qty-btn" id="qtyPlus" onclick="changeQty(1)">+</button>
+        <span class="qty-divider" id="qtyDivider"></span>
+        <button class="qty-trash" id="qtyTrash" onclick="deleteFromDialog()" aria-label="刪除">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none"><path d="M5 7h14M9 7V5a1 1 0 011-1h4a1 1 0 011 1v2M7 7l1 12a2 2 0 002 2h4a2 2 0 002-2l1-12M10 11v6M14 11v6" stroke="#000" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        </button>
+      </div>
+      <div class="attr-section">
+        <div class="attr-title">備註</div>
+        <div class="attr-body">
+          <textarea class="note-input" id="noteInput" placeholder="備註 (選填)"></textarea>
+        </div>
+      </div>
+    </div>
+    <div class="dialog-footer">
+      <button class="cta-btn" id="dlgConfirm" onclick="confirmDialog()">
+        <span id="dlgConfirmLabel">加入購物車</span>
+        <span class="total" id="dlgPrice">$0</span>
+      </button>
+    </div>
+  </div>
+
+  <!-- ============== GIFT DIALOG (滿額贈) ============== -->
+  <div class="gift-dialog" id="giftDialog">
+    <div class="g-header">
+      <div class="g-title">消費滿 500 贈飲料</div>
+    </div>
+    <div class="g-body">
+      <div class="g-subtitle">已獲得贈品！</div>
+      <div class="gift-card">
+        <div class="g-info">
+          <div class="g-name">冰紅茶</div>
+          <div class="g-price"><span class="strike">$65</span><span class="free">免費</span></div>
+        </div>
+        <div class="g-img">
+          <svg viewBox="0 0 40 40" fill="none">
+            <path d="M11 12h18l-1.5 20a3 3 0 01-3 2.8h-9a3 3 0 01-3-2.8L11 12z" fill="#B8551F" stroke="#7A3510" stroke-width="1"/>
+            <ellipse cx="20" cy="12" rx="9" ry="1.8" fill="#7A3510"/>
+            <rect x="16" y="14" width="1.5" height="4" fill="#fff" opacity=".4" rx=".5"/>
+            <circle cx="24" cy="16" r="1" fill="#fff" opacity=".3"/>
+          </svg>
+        </div>
+      </div>
+    </div>
+    <div class="g-footer">
+      <button class="g-btn outlined" onclick="dismissGift()">不需要</button>
+      <button class="g-btn filled" onclick="claimGift()">領取贈品</button>
+    </div>
+  </div>
+
+  <!-- Side panel -->
+  <div class="side-panel" id="sidePanel">
+    <h3>選單</h3>
+    <a href="#" onclick="toggleSide(false); return false;">菜單</a>
+    <a href="#" onclick="toggleSide(false); return false;">我的訂單</a>
+    <a href="#" onclick="toggleSide(false); return false;">會員專區</a>
+    <a href="#" onclick="toggleSide(false); return false;">店家資訊</a>
+  </div>
+
+  <!-- Toast -->
+  <div class="toast" id="toast"></div>
+
+</div>
+
+<script>
+  // ============ DATA ============
+  const menuData = [
+    { id: 1, name: '梅花豬肉鍋', price: 120, desc: '梅花豬肉片/菜盤/昆布湯梅花豬肉片/菜盤/昆布湯 梅花豬肉片/菜盤/昆布湯 梅花豬肉' },
+    { id: 2, name: '梅花豬肉鍋套餐', price: 180, desc: '梅花豬肉片/菜盤/昆布湯 加碼白飯/飲料/甜點' },
+    { id: 3, name: '豪華海鮮拼盤', price: 300, desc: '鮮蝦/干貝/鯛魚/花枝/文蛤/菜盤' },
+    { id: 4, name: '親子丼', price: 100, desc: '雞肉/雞蛋/洋蔥/日式高湯' },
+    { id: 5, name: '梅花豬肉鍋', price: 120, desc: '梅花豬肉片/菜盤/昆布湯' },
+    { id: 6, name: '梅花豬肉鍋', price: 120, desc: '梅花豬肉片/菜盤/昆布湯' },
+    { id: 7, name: '冰紅茶', price: 30, desc: '', isBeverage: true }
+  ];
+
+  // Iced tea placeholder for gift
+  const iceteaImg = "data:image/svg+xml;utf8," + encodeURIComponent(
+    '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 150">' +
+    '<rect width="200" height="150" fill="#FFF8CE"/>' +
+    '<path d="M75 40 L125 40 L120 128 Q120 138 110 138 L90 138 Q80 138 80 128 Z" fill="#B04D1A" stroke="#5A2408" stroke-width="1.5"/>' +
+    '<ellipse cx="100" cy="40" rx="25" ry="4" fill="#5A2408"/>' +
+    '<rect x="85" y="52" width="4" height="14" fill="#fff" opacity=".5" rx="1"/>' +
+    '<circle cx="108" cy="60" r="3" fill="#fff" opacity=".35"/>' +
+    '<rect x="90" y="70" width="6" height="6" fill="#E9C77B" opacity=".85" rx="1" transform="rotate(20 93 73)"/>' +
+    '<rect x="102" y="82" width="7" height="7" fill="#E9C77B" opacity=".85" rx="1" transform="rotate(-15 105 85)"/>' +
+    '</svg>'
+  );
+
+  // Placeholder image (data URI — earthy neutral)
+  const dishImg = "data:image/svg+xml;utf8," + encodeURIComponent(
+    '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 150">' +
+    '<defs><linearGradient id="g" x1="0" x2="1" y1="0" y2="1">' +
+    '<stop offset="0" stop-color="#2b1e14"/><stop offset="1" stop-color="#543a26"/>' +
+    '</linearGradient></defs>' +
+    '<rect width="200" height="150" fill="url(#g)"/>' +
+    '<ellipse cx="100" cy="95" rx="60" ry="28" fill="#0e0e0e"/>' +
+    '<ellipse cx="100" cy="88" rx="50" ry="22" fill="#e4c4a3"/>' +
+    '<path d="M60 78 q15 -10 30 0 t40 0" stroke="#bf6845" stroke-width="7" fill="none" stroke-linecap="round"/>' +
+    '<circle cx="78" cy="86" r="7" fill="#f6d18b"/>' +
+    '<circle cx="118" cy="82" r="8" fill="#c86e3b"/>' +
+    '<circle cx="100" cy="92" r="6" fill="#7fb26a"/>' +
+    '<path d="M40 60 L45 75 L55 65 Z" fill="#5b8a3a"/>' +
+    '<path d="M150 55 L155 70 L165 60 Z" fill="#5b8a3a"/>' +
+    '</svg>'
+  );
+
+  // ============ STATE ============
+  const state = {
+    cart: [], // { id, name, price, qty, note, isGift?, originalPrice? }
+    dialog: { mode: null, itemId: null, qty: 1, note: '', price: 0 },
+    gift: {
+      threshold: 500,
+      dismissed: false,   // user clicked 不需要
+      claimed: false,     // user clicked 領取贈品
+      item: { id: 'gift-icetea', name: '冰紅茶', originalPrice: 30, price: 0, qty: 1, isGift: true }
+    }
+  };
+
+  // ============ RENDER ============
+  function renderMenu() {
+    const list = document.getElementById('menu-list');
+    list.innerHTML = menuData.map(m => `
+      <div class="menu-item" onclick="openDialog('add', ${m.id})">
+        <div class="info">
+          <div class="name">${m.name}</div>
+          <div class="price">$${m.price}</div>
+          ${m.desc ? `<div class="desc">${m.desc}</div>` : ''}
+        </div>
+        <img class="thumb" src="${m.isBeverage ? iceteaImg : dishImg}" alt="${m.name}" />
+      </div>
+    `).join('');
+  }
+
+  function totalQty() { return state.cart.reduce((s, i) => s + i.qty, 0); }
+  function regularSubtotal() { return state.cart.filter(i => !i.isGift).reduce((s, i) => s + i.qty * i.price, 0); }
+  function isGiftReverted() {
+    const gift = state.cart.find(i => i.isGift);
+    if (!gift) return false;
+    return regularSubtotal() < state.gift.threshold;
+  }
+  function paidTotal() {
+    const base = regularSubtotal();
+    const gift = state.cart.find(i => i.isGift);
+    if (!gift) return base;
+    return isGiftReverted() ? base + gift.originalPrice * gift.qty : base;
+  }
+  function totalPrice() { return paidTotal(); }
+
+  function renderCartFooter() {
+    // Reset dismissed flag if cart drops below threshold, so the dialog
+    // can re-open the next time the user crosses it again.
+    if (!state.gift.claimed && regularSubtotal() < state.gift.threshold) {
+      state.gift.dismissed = false;
+    }
+    const q = totalQty(), t = paidTotal();
+    document.getElementById('cartCount').textContent = q;
+    document.getElementById('cartTotal').textContent = '$' + t;
+    document.getElementById('cartCount2').textContent = q;
+    document.getElementById('checkoutTotal').textContent = '$' + t;
+    document.getElementById('cartTotalCount').textContent = q;
+    document.getElementById('bkSubtotal').textContent = '$' + t;
+    document.getElementById('bkTotal').textContent = '$' + (t - 300 + 200);
+    document.getElementById('menuFooter').style.display = q > 0 ? 'block' : 'none';
+    // Banner show/hide is controlled by claimGift() (3s auto-dismiss), not by cart state
+  }
+  function showClaimedBanner() {
+    document.getElementById('menuClaimedBanner').classList.add('show');
+    document.getElementById('cartClaimedBanner').classList.add('show');
+  }
+
+  function renderCartList() {
+    const list = document.getElementById('cartItemList');
+    if (state.cart.length === 0) {
+      list.innerHTML = '<div style="padding: 30px 0; text-align: center; color: var(--gray-3); font-size: 14px;">購物車內尚無商品</div>';
+      return;
+    }
+    const reverted = isGiftReverted();
+    // Display: non-gift items first, gift items last. Preserve original cart index for handlers.
+    const ordered = state.cart.map((item, idx) => ({item, idx}))
+      .sort((a, b) => (a.item.isGift ? 1 : 0) - (b.item.isGift ? 1 : 0));
+    list.innerHTML = ordered.map(({item: i, idx}) => {
+      const desc = i.desc ? `<div class="desc">${i.desc}</div>` : '';
+      const note = i.note ? `<div class="note">“${i.note}”</div>` : '';
+      const isGift = !!i.isGift;
+      const nameBlock = `<span class="name">${i.name}</span>`;
+      let amountBlock, textBlock;
+      if (isGift && !reverted) {
+        amountBlock = `<span class="amount gift"><span class="strike">$${i.originalPrice}</span><span>$0</span></span>`;
+        textBlock = `<div class="gift-tag">滿額贈</div>`;
+      } else if (isGift && reverted) {
+        amountBlock = `<span class="amount">$${i.originalPrice}</span>`;
+        textBlock = `<div class="gift-hint">消費滿 $500 即可免費獲得</div>`;
+      } else {
+        amountBlock = `<span class="amount">$${i.qty * i.price}</span>`;
+        textBlock = `${desc}${note}`;
+      }
+      const clickHandler = `onclick="openDialog('update', ${JSON.stringify(i.id)}, ${idx})"`;
+      return `
+      <div class="cart-item" ${clickHandler}>
+        <div class="qty-badge">${i.qty}</div>
+        <div class="info">
+          <div class="row-top">
+            ${nameBlock}
+            ${amountBlock}
+          </div>
+          <div class="row-bottom">
+            <div class="text">
+              ${textBlock}
+            </div>
+            <button class="remove" onclick="event.stopPropagation(); removeCart(${idx})">移除</button>
+          </div>
+        </div>
+      </div>
+    `;}).join('');
+  }
+
+  // ============ NAV ============
+  function showScreen(name) {
+    document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+    document.getElementById('screen-' + name).classList.add('active');
+    toggleSide(false);
+  }
+  function goToCart() {
+    if (state.cart.length === 0) {
+      showToast('請先加入商品到購物車');
+      return;
+    }
+    showScreen('cart');
+    renderCartList();
+    renderCartFooter();
+  }
+
+  // ============ CATEGORY TABS ============
+  document.getElementById('catalog').addEventListener('click', (e) => {
+    const el = e.target.closest('.cat');
+    if (!el) return;
+    document.querySelectorAll('#catalog .cat').forEach(c => c.classList.remove('active'));
+    el.classList.add('active');
+    document.querySelector('.menu-section-title').textContent = el.dataset.cat;
+  });
+
+  // ============ DIALOG ============
+  function openDialog(mode, itemId, cartIdx) {
+    const source = mode === 'update'
+      ? state.cart[cartIdx]
+      : menuData.find(m => m.id === itemId);
+
+    const isGift = !!source.isGift;
+    state.dialog = {
+      mode,
+      itemId,
+      cartIdx,
+      qty: mode === 'update' ? source.qty : 1,
+      note: mode === 'update' ? (source.note || '') : '',
+      price: isGift ? 0 : source.price,
+      name: source.name,
+      isGift
+    };
+
+    document.getElementById('dlgImg').src = isGift ? iceteaImg : dishImg;
+    document.getElementById('dlgName').textContent = source.name;
+    document.getElementById('qtyVal').textContent = state.dialog.qty;
+    document.getElementById('noteInput').value = state.dialog.note;
+    document.getElementById('dlgConfirmLabel').textContent = mode === 'update' ? '更新商品' : '加入購物車';
+
+    // Gift-specific dialog customizations
+    document.getElementById('dlgGiftTag').style.display = isGift ? 'inline-block' : 'none';
+    document.getElementById('qtyRow').classList.toggle('gift', isGift);
+    document.getElementById('qtyMinus').disabled = isGift || state.dialog.qty <= 1;
+    document.getElementById('qtyPlus').disabled = isGift;
+
+    updateDlgPrice();
+
+    document.getElementById('backdrop').classList.add('active');
+    document.getElementById('itemDialog').classList.add('active');
+  }
+
+  function closeDialog() {
+    document.getElementById('backdrop').classList.remove('active');
+    document.getElementById('itemDialog').classList.remove('active');
+  }
+  function handleBackdropClick() {
+    if (document.getElementById('giftDialog').classList.contains('active')) {
+      // Gift dialog is modal — force explicit choice
+      return;
+    }
+    closeDialog();
+  }
+
+  function changeQty(delta) {
+    if (state.dialog.isGift) return;
+    const next = state.dialog.qty + delta;
+    if (next < 1) return;
+    state.dialog.qty = next;
+    document.getElementById('qtyVal').textContent = next;
+    document.getElementById('qtyMinus').disabled = next <= 1;
+    updateDlgPrice();
+  }
+
+  function updateDlgPrice() {
+    document.getElementById('dlgPrice').textContent = '$' + (state.dialog.qty * state.dialog.price);
+  }
+
+  function deleteFromDialog() {
+    if (state.dialog.cartIdx == null) { closeDialog(); return; }
+    const idx = state.dialog.cartIdx;
+    closeDialog();
+    removeCart(idx);
+  }
+
+  function confirmDialog() {
+    const d = state.dialog;
+    d.note = document.getElementById('noteInput').value.trim();
+    if (d.mode === 'update') {
+      state.cart[d.cartIdx].qty = d.qty;
+      state.cart[d.cartIdx].note = d.note;
+      showToast('已更新商品');
+      renderCartList();
+    } else {
+      const item = menuData.find(m => m.id === d.itemId);
+      state.cart.push({
+        id: item.id, name: item.name, price: item.price, desc: item.desc,
+        qty: d.qty, note: d.note
+      });
+      showToast(`已加入 ${d.qty} 份「${item.name}」`);
+    }
+    renderCartFooter();
+    closeDialog();
+    checkGiftEligibility();
+  }
+
+  function removeCart(idx) {
+    const removed = state.cart.splice(idx, 1)[0];
+    const removedGift = removed && removed.isGift;
+    if (removedGift) {
+      state.gift.claimed = false;
+      state.gift.dismissed = false;
+    }
+    renderCartList();
+    renderCartFooter();
+    showToast('已移除商品');
+    if (state.cart.length === 0) {
+      setTimeout(() => showScreen('menu'), 500);
+    } else if (!removedGift) {
+      // Only auto-check on non-gift removals.
+      // Gift removals wait for the next user edit to re-trigger the dialog.
+      checkGiftEligibility();
+    }
+  }
+
+  // ============ GIFT ============
+  function checkGiftEligibility() {
+    if (state.gift.claimed || state.gift.dismissed) return;
+    if (paidTotal() >= state.gift.threshold) {
+      openGiftDialog();
+    }
+  }
+  function openGiftDialog() {
+    document.getElementById('backdrop').classList.add('active');
+    document.getElementById('giftDialog').classList.add('active');
+  }
+  function closeGiftDialog() {
+    document.getElementById('giftDialog').classList.remove('active');
+    // Only close backdrop if no other dialog open
+    if (!document.getElementById('itemDialog').classList.contains('active')) {
+      document.getElementById('backdrop').classList.remove('active');
+    }
+  }
+  let bannerTimer = null;
+  function claimGift() {
+    state.gift.claimed = true;
+    state.gift.dismissed = false;
+    const exists = state.cart.some(c => c.isGift);
+    if (!exists) {
+      // If the user already has a regular 冰紅茶 in cart, convert 1 unit to the gift
+      // instead of adding a new line — the existing item at full price becomes free.
+      const existing = state.cart.find(c => c.id === state.gift.item.id.replace('gift-', '') || c.name === state.gift.item.name);
+      const iceteaMatch = state.cart.find(c => !c.isGift && c.name === state.gift.item.name);
+      if (iceteaMatch) {
+        if (iceteaMatch.qty === 1) {
+          iceteaMatch.isGift = true;
+          iceteaMatch.originalPrice = iceteaMatch.price;
+          iceteaMatch.price = 0;
+          iceteaMatch.desc = '';
+        } else {
+          iceteaMatch.qty -= 1;
+          state.cart.push({ ...state.gift.item });
+        }
+      } else {
+        state.cart.push({ ...state.gift.item });
+      }
+    }
+    renderCartList();
+    renderCartFooter();
+    closeGiftDialog();
+    // Slide up, hold 3s, slide out
+    showClaimedBanner();
+    clearTimeout(bannerTimer);
+    bannerTimer = setTimeout(() => {
+      document.getElementById('menuClaimedBanner').classList.remove('show');
+      document.getElementById('cartClaimedBanner').classList.remove('show');
+    }, 3000);
+  }
+  function dismissGift() {
+    state.gift.dismissed = true;
+    closeGiftDialog();
+  }
+
+  // ============ PAY ============
+  function selectPay(el, key) {
+    document.querySelectorAll('.pay-opt').forEach(o => o.classList.remove('selected'));
+    el.classList.add('selected');
+  }
+
+  // ============ SIDE ============
+  function toggleSide(open) {
+    document.getElementById('sidePanel').classList.toggle('open', open);
+  }
+
+  // ============ TOAST ============
+  let toastTimer;
+  function showToast(msg) {
+    const t = document.getElementById('toast');
+    t.textContent = msg;
+    t.classList.add('show');
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(() => t.classList.remove('show'), 1600);
+  }
+
+  // ============ INIT ============
+  renderMenu();
+  renderCartFooter();
+</script>
+</body>
+</html>
