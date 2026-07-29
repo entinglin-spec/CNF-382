@@ -1308,8 +1308,6 @@
       const paidQ = paidGiftQty();
 
       if (paidQ > 0) {
-        // Paid gift row (extras) — if threshold not met, this represents the whole
-        // gift qty as paid, and we surface the "消費滿 $500 即可免費獲得" hint on the row.
         rows.push(cartRowHTML({
           kind: 'gift-paid',
           id: GIFT.id,
@@ -1319,7 +1317,6 @@
           unit: GIFT.originalPrice,
           qty: paidQ,
           subtotal: paidQ * GIFT.originalPrice,
-          hint: !met ? `消費滿 $${GIFT_THRESHOLD} 即可免費獲得` : null,
         }));
       }
       if (freeQ > 0) {
@@ -1333,7 +1330,7 @@
           unitStrike: true,
           qty: freeQ,
           subtotal: 0,
-          tag: '滿額贈',
+          tag: '贈品',
         }));
       }
     }
