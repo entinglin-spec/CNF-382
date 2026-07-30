@@ -1291,29 +1291,21 @@
         `;
         listEl.appendChild(row);
       }
-      // Gift items (贈品) - dashed divider first, then rows
-      // 動態計價：達門檻 = $0 (free)、未達門檻 = 原價並計入應付
-      if (giftClaimed.length > 0) {
-        const divider = document.createElement('div');
-        divider.className = 'cart-gift-divider';
-        listEl.appendChild(divider);
-      }
-      for (const gift of giftClaimed) {
-        const eligible = isGiftEligible(gift);
-        const lineSubtotal = eligible ? 0 : gift.qty * gift.price;
-        totalQty += gift.qty;
-        totalPrice += lineSubtotal;  // 未達門檻的贈品要付錢
+      // Split gifts by eligibility
+      const notEligibleGifts = giftClaimed.filter(g => !isGiftEligible(g));
+      const eligibleGifts = giftClaimed.filter(g => isGiftEligible(g));
 
+      // 未達門檻贈品：不再顯示贈品標籤，以一般計價品項樣式呈現，混在一般品項後面
+      for (const gift of notEligibleGifts) {
+        totalQty += gift.qty;
+        totalPrice += gift.qty * gift.price;
         const row = document.createElement('div');
-        row.className = 'cart-item gift' + (eligible ? '' : ' billed');
-        row.innerHTML = eligible ? `
-          <div class="item-name">
-            <span class="tag-gift">贈品</span>
-            <span>${gift.name}</span>
-          </div>
-          <div class="item-price">$ 0</div>
+        row.className = 'cart-item';
+        row.innerHTML = `
+          <div class="item-name">${gift.name}</div>
+          <div class="item-price">$ ${gift.price}</div>
           <div class="item-controls">
-            <span class="subprice original">$ ${gift.price}</span>
+            <span class="subprice">$ ${gift.qty * gift.price}</span>
             <div class="qty-ctrl">
               <span class="qty-slot"></span>
               <span class="qty">${gift.qty}</span>
@@ -1321,14 +1313,28 @@
             </div>
           </div>
           <button class="trash-btn" data-action="gift-remove" data-name="${gift.name}" title="刪除">🗑</button>
-        ` : `
+        `;
+        listEl.appendChild(row);
+      }
+
+      // 達門檻贈品：虛線分隔 + 贈品標籤 + $0 免費
+      if (eligibleGifts.length > 0) {
+        const divider = document.createElement('div');
+        divider.className = 'cart-gift-divider';
+        listEl.appendChild(divider);
+      }
+      for (const gift of eligibleGifts) {
+        totalQty += gift.qty;
+        const row = document.createElement('div');
+        row.className = 'cart-item gift';
+        row.innerHTML = `
           <div class="item-name">
             <span class="tag-gift">贈品</span>
             <span>${gift.name}</span>
           </div>
-          <div class="item-price">$ ${gift.price}</div>
+          <div class="item-price">$ 0</div>
           <div class="item-controls">
-            <span class="subprice">$ ${lineSubtotal}</span>
+            <span class="subprice original">$ ${gift.price}</span>
             <div class="qty-ctrl">
               <span class="qty-slot"></span>
               <span class="qty">${gift.qty}</span>
@@ -1373,14 +1379,32 @@
         `;
         listEl.appendChild(row);
       }
-      for (const gift of giftClaimed) {
-        const eligible = isGiftEligible(gift);
-        const lineSubtotal = eligible ? 0 : gift.qty * gift.price;
-        cartTotal += lineSubtotal;  // 未達門檻贈品計入應付
+      // 未達門檻贈品：不加贈品標籤，樣式跟一般品項一致，計入應付
+      const notEligibleGifts = giftClaimed.filter(g => !isGiftEligible(g));
+      const eligibleGifts = giftClaimed.filter(g => isGiftEligible(g));
+
+      for (const gift of notEligibleGifts) {
+        const lineSubtotal = gift.qty * gift.price;
+        cartTotal += lineSubtotal;
+        const row = document.createElement('div');
+        row.className = 'order-item';
+        row.innerHTML = `
+          <div class="order-item-name">${gift.name}</div>
+          <div class="order-item-prices">
+            <span>$${gift.price}</span>
+            <span>${gift.qty}</span>
+            <span class="subtotal">$${lineSubtotal}</span>
+          </div>
+        `;
+        listEl.appendChild(row);
+      }
+
+      // 達門檻贈品：贈品標籤 + 原價劃線 + $0
+      for (const gift of eligibleGifts) {
         const row = document.createElement('div');
         row.className = 'order-item';
         row.style.minHeight = '82px';
-        row.innerHTML = eligible ? `
+        row.innerHTML = `
           <div class="order-item-name">
             <span>${gift.name}</span>
             <span class="tag-gift">贈品</span>
@@ -1389,16 +1413,6 @@
             <span class="original">$${gift.price}</span>
             <span>${gift.qty}</span>
             <span class="subtotal">$0</span>
-          </div>
-        ` : `
-          <div class="order-item-name">
-            <span>${gift.name}</span>
-            <span class="tag-gift">贈品</span>
-          </div>
-          <div class="order-item-prices">
-            <span>$${gift.price}</span>
-            <span>${gift.qty}</span>
-            <span class="subtotal">$${lineSubtotal}</span>
           </div>
         `;
         listEl.appendChild(row);
