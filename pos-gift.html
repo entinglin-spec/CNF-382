@@ -1,0 +1,1577 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=1366">
+<title>POS 滿額贈原型</title>
+<style>
+  :root {
+    /* Base tokens (from Figma variable_defs) */
+    --brand-primary: #5BAEA4;
+    --brand-primary-alt: #5BAEA3;
+    --brand-primary-light: #DEEFED;
+    --warning: #FFD07B;
+    --tag-gift: #D35F67;
+    --header-navy: #20374D;
+    --menu-bg: #0F2434;
+    --menu-bg-2: #1B334A;
+    --gray-title: #7B7B7B;
+    --gray-border: #DCDDDD;
+    --gray-bg: #F3F3F4;
+    --gray-4: #646464;
+    --gray-black: #232323;
+    --gray-2: #BABABA;
+    --gray-1: #E6E6E6;
+    --gray-BG: #F8F8F8;
+    --text-black: #000000;
+    --white: #FFFFFF;
+    --text-seat: #6C6C6C;
+    --loyalty-yellow: #F5B940;
+
+    --radius-sm: 6px;
+    --radius-md: 10px;
+    --radius-lg: 12px;
+    --radius-pill: 999px;
+    --modal-shadow: 0 8px 40px rgba(0,0,0,0.18);
+    --backdrop-color: rgba(0,0,0,0.4);
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body {
+    background: #2a2a2a;
+    font-family: 'Open Sans', 'PingFang TC', 'Microsoft JhengHei', -apple-system, system-ui, sans-serif;
+    color: var(--text-black);
+    min-height: 100vh;
+  }
+
+  /* ==== Stage ==== */
+  body { display: flex; align-items: center; justify-content: center; }
+  .stage {
+    width: 1366px; height: 768px; background: var(--menu-bg);
+    position: relative; margin: 20px auto; overflow: hidden;
+    box-shadow: 0 8px 40px rgba(0,0,0,0.5);
+  }
+
+  .screen { position: absolute; inset: 0; display: none; }
+  .screen.active { display: block; }
+
+  /* ============================================
+     MENU PAGE LAYOUT
+     ============================================ */
+  .menu-layout {
+    position: absolute; inset: 0;
+    display: grid;
+    grid-template-columns: 64px 64px 1fr 336px;
+    grid-template-rows: 78px 1fr;
+    background: var(--menu-bg);
+    color: var(--white);
+    font-size: 18px;
+  }
+
+  /* Left-most narrow strip: hamburger */
+  .menu-left-thin {
+    grid-column: 1; grid-row: 1 / span 2;
+    background: var(--menu-bg-2);
+    display: flex; flex-direction: column;
+    align-items: center; padding: 20px 0;
+  }
+  .menu-left-thin .hamburger {
+    width: 32px; height: 32px;
+    display: flex; flex-direction: column;
+    justify-content: space-between; padding: 6px 0;
+  }
+  .menu-left-thin .hamburger span {
+    display: block; height: 3px; background: #fff; border-radius: 2px;
+  }
+
+  /* Left mode column */
+  .menu-left-mode {
+    grid-column: 2; grid-row: 1 / span 2;
+    background: var(--menu-bg-2);
+    display: flex; flex-direction: column;
+    align-items: center; gap: 10px;
+    padding: 12px 8px;
+  }
+  .mode-btn {
+    width: 50px; height: 50px;
+    background: var(--white);
+    color: var(--text-black);
+    border-radius: 6px;
+    font-size: 18px; font-weight: 700;
+    display: flex; align-items: center; justify-content: center;
+    cursor: pointer; user-select: none;
+    box-sizing: border-box;
+    line-height: 1;
+    text-align: center;
+    letter-spacing: -1px;
+  }
+  .mode-btn.active {
+    background: var(--brand-primary);
+    color: var(--white);
+  }
+  .mode-btn.dine { color: #ccc; background: #eee; }
+  .app-icon {
+    width: 50px; height: 50px;
+    border-radius: 8px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 9px; font-weight: 700; color: #fff;
+    text-align: center; line-height: 1.1;
+    letter-spacing: -0.3px;
+    padding: 3px;
+  }
+  .app-icon.inline { background: #FF5A26; }
+  .app-icon.ubereats { background: #06C167; color: #000; }
+  .app-icon.foodpanda { background: #D70F64; font-size: 22px; }
+  .qrcode-btn {
+    margin-top: auto;
+    width: 50px; height: 60px;
+    display: flex; flex-direction: column;
+    align-items: center; gap: 2px;
+    font-size: 9px; color: #ccc;
+  }
+  .qrcode-btn .qrbox {
+    width: 40px; height: 40px;
+    background: var(--white);
+    border-radius: 4px;
+    position: relative;
+  }
+  .qrcode-btn .qrbox::before,
+  .qrcode-btn .qrbox::after {
+    content: ''; position: absolute;
+    width: 12px; height: 12px;
+    border: 2px solid #000;
+  }
+  .qrcode-btn .qrbox::before { top: 4px; left: 4px; }
+  .qrcode-btn .qrbox::after { bottom: 4px; right: 4px; }
+
+  /* Top navigation: category tabs */
+  .menu-top-nav {
+    grid-column: 3; grid-row: 1;
+    background: var(--menu-bg);
+    display: flex;
+    padding: 10px 16px;
+    gap: 8px;
+    align-items: center;
+    overflow: hidden;
+  }
+  .cat-tab {
+    background: var(--white);
+    color: var(--text-black);
+    padding: 10px 12px;
+    border-radius: 6px;
+    font-size: 20px;
+    font-weight: 400;
+    cursor: pointer;
+    white-space: nowrap;
+    min-width: 100px;
+    text-align: center;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.15);
+    user-select: none;
+  }
+  .cat-tab.active {
+    background: var(--brand-primary);
+    color: var(--white);
+    font-weight: 700;
+  }
+
+  /* Food grid */
+  .menu-grid {
+    grid-column: 3; grid-row: 2;
+    padding: 4px 16px 16px;
+    display: grid;
+    grid-template-columns: repeat(5, 1fr);
+    gap: 12px;
+    align-content: start;
+    overflow-y: auto;
+  }
+  .food-card {
+    background: var(--white);
+    border-radius: 6px;
+    height: 140px;
+    padding: 14px;
+    display: flex; flex-direction: column; justify-content: space-between;
+    cursor: pointer;
+    position: relative;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.15);
+    transition: transform .1s;
+    overflow: hidden;
+  }
+  .food-card:hover { transform: translateY(-2px); }
+  .food-card .name {
+    font-size: 20px; font-weight: 400;
+    color: var(--text-black);
+  }
+  .food-card .price {
+    font-size: 18px;
+    color: var(--brand-primary);
+    padding-top: 6px;
+    border-top: 1px solid var(--gray-1);
+    font-weight: 500;
+  }
+  .food-card.selected {
+    background: var(--brand-primary-light);
+    border: 1px solid var(--brand-primary);
+  }
+  .food-card.selected { padding-top: 32px; }
+  .food-card .qty-badge {
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    background: var(--brand-primary);
+    color: var(--white);
+    font-size: 14px; font-weight: 700;
+    padding: 3px 10px;
+    display: none;
+    letter-spacing: 0.5px;
+  }
+  .food-card.selected .qty-badge { display: block; }
+
+  /* Right sidebar: cart */
+  .menu-cart {
+    grid-column: 4; grid-row: 1 / span 2;
+    background: var(--white);
+    color: var(--text-black);
+    display: flex; flex-direction: column;
+    padding: 0;
+  }
+  .cart-header {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 16px 16px 8px;
+    border-bottom: 1px solid var(--gray-1);
+  }
+  .cart-header .shop-name {
+    font-size: 18px; font-weight: 700;
+  }
+  .cart-header .shop-icon {
+    width: 36px; height: 36px;
+    background: var(--brand-primary);
+    border-radius: 999px;
+    display: flex; align-items: center; justify-content: center;
+    color: #fff;
+  }
+  .cart-mode {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 10px 16px;
+    border-bottom: 1px solid var(--gray-1);
+  }
+  .cart-mode .badge {
+    font-size: 16px; color: var(--text-black); font-weight: 500;
+  }
+  .cart-mode .actions {
+    display: flex; gap: 8px;
+  }
+  .cart-mode .icon-btn {
+    width: 32px; height: 30px;
+    border: 1px solid var(--gray-border);
+    border-radius: 4px;
+    background: var(--gray-BG);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 14px;
+    cursor: pointer;
+  }
+  .cart-items {
+    flex: 1;
+    overflow-y: auto;
+    padding: 8px 0;
+    min-height: 0;
+  }
+  .cart-items:empty { display: none; }
+  .cart-empty-hint {
+    flex: 1;
+    display: flex; flex-direction: column;
+    align-items: center; justify-content: center;
+    color: var(--gray-2);
+    font-size: 16px;
+    text-align: center;
+    line-height: 1.6;
+    padding: 20px;
+  }
+  .menu-cart:has(.cart-items:not(:empty)) .cart-empty-hint { display: none; }
+  .pay-btn-menu.disabled {
+    background: var(--gray-1);
+    color: var(--gray-2);
+    cursor: not-allowed;
+  }
+  .cart-item {
+    display: grid;
+    grid-template-columns: 1fr auto;
+    grid-template-rows: auto auto;
+    align-items: center;
+    padding: 10px 16px;
+    border-bottom: 1px solid var(--gray-1);
+    row-gap: 4px;
+  }
+  .cart-item .item-name {
+    font-size: 20px; font-weight: 700;
+    color: var(--text-black);
+  }
+  .cart-item .item-price {
+    font-size: 20px; text-align: right;
+    color: var(--text-black);
+    font-weight: 700;
+  }
+  .cart-item .item-controls {
+    display: flex; align-items: center; gap: 8px;
+    font-size: 18px; color: var(--gray-title);
+  }
+  .cart-item .item-controls .subprice {
+    color: var(--gray-title);
+    font-size: 18px;
+  }
+  .cart-item .item-actions {
+    display: flex; align-items: center; gap: 8px;
+  }
+  .qty-ctrl {
+    display: flex; align-items: center; gap: 12px;
+    margin-left: auto;
+    padding-right: 8px;
+  }
+  .qty-ctrl button {
+    width: 24px; height: 24px;
+    border-radius: 999px;
+    border: 0;
+    background: var(--gray-1);
+    color: var(--text-black);
+    font-size: 16px;
+    cursor: pointer;
+    display: inline-flex; align-items: center; justify-content: center;
+    line-height: 1;
+  }
+  .qty-ctrl button.plus { background: var(--brand-primary); color: #fff; }
+  .qty-ctrl .qty { min-width: 18px; text-align: center; font-size: 18px; color: var(--text-black); font-weight: 400; }
+  .trash-btn {
+    background: transparent; border: 0;
+    color: var(--gray-2); cursor: pointer;
+    padding: 2px;
+    font-size: 18px;
+  }
+  /* Gift item variant in cart */
+  .cart-item.gift .item-name {
+    display: flex; flex-direction: column;
+    align-items: flex-start; gap: 6px;
+  }
+  .cart-item.gift .item-name .tag-gift {
+    font-size: 12px;
+    padding: 3px 8px;
+  }
+  .cart-item.gift .subprice.original {
+    text-decoration: line-through;
+    color: var(--gray-title);
+    font-size: 18px;
+  }
+  /* qty-slot: invisible spacers matching qty-ctrl button width so gift's "1" aligns with regular's "1" */
+  .qty-ctrl .qty-slot {
+    width: 24px; height: 24px;
+    display: inline-block;
+    flex-shrink: 0;
+  }
+  /* Dashed divider before gift section */
+  .cart-gift-divider {
+    height: 0;
+    border-top: 2px dashed var(--gray-border);
+    margin: 8px 16px 4px;
+  }
+
+  .cart-bottom {
+    border-top: 1px solid var(--gray-1);
+    padding: 12px 12px 16px;
+    display: flex; flex-direction: column; gap: 10px;
+  }
+  .cart-bottom .row {
+    display: flex; gap: 8px;
+  }
+  .cart-bottom .row .out-btn {
+    flex: 1;
+    padding: 10px 8px;
+    background: var(--gray-BG);
+    color: var(--gray-title);
+    border: 1px solid var(--gray-border);
+    border-radius: 6px;
+    font-size: 16px; font-weight: 500;
+    cursor: pointer;
+    font-family: inherit;
+  }
+  .cart-bottom .pay-row {
+    display: flex; gap: 8px;
+    align-items: center;
+  }
+  .cart-bottom .del-all {
+    width: 46px; height: 52px;
+    background: var(--gray-BG);
+    border: 1px solid var(--gray-border);
+    border-radius: 6px;
+    color: var(--gray-title);
+    display: flex; align-items: center; justify-content: center;
+    cursor: pointer;
+  }
+  .cart-bottom .pay-btn-menu {
+    flex: 1; height: 52px;
+    background: var(--warning);
+    color: var(--gray-title);
+    border: 0; border-radius: 6px;
+    font-size: 20px; font-weight: 700;
+    cursor: pointer;
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 0 16px;
+    position: relative;
+    font-family: inherit;
+  }
+  .cart-bottom .pay-btn-menu .badge {
+    position: absolute;
+    top: -4px; right: -4px;
+    background: var(--tag-gift);
+    color: #fff;
+    font-size: 12px;
+    padding: 2px 6px;
+    border-radius: 999px;
+    min-width: 20px; text-align: center;
+    font-weight: 700;
+  }
+
+  /* ============================================
+     Modal shared
+     ============================================ */
+  .modal-backdrop {
+    position: absolute; inset: 0;
+    background: var(--backdrop-color);
+    display: flex; align-items: center; justify-content: center;
+    z-index: 100;
+  }
+
+  /* ============ Upsell modal ============ */
+  .upsell-modal {
+    background: var(--white);
+    border-radius: var(--radius-lg);
+    padding: 32px 40px;
+    box-shadow: var(--modal-shadow);
+    width: 460px;
+    display: flex; flex-direction: column; gap: 32px;
+  }
+  .upsell-title {
+    display: flex; align-items: center; gap: 12px;
+    justify-content: center;
+    font-size: 24px; font-weight: 700;
+    color: var(--text-black);
+  }
+  .upsell-title .info-icon {
+    width: 26px; height: 26px;
+    background: var(--brand-primary);
+    color: #fff;
+    border-radius: 999px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 16px; font-weight: 700;
+    font-family: serif;
+  }
+  .upsell-item {
+    display: flex; align-items: center; gap: 12px;
+    padding: 10px 16px;
+    font-size: 20px; color: var(--text-black);
+  }
+  .upsell-item .chk {
+    width: 26px; height: 26px;
+    border: 2px solid var(--gray-title);
+    border-radius: 4px;
+    background: var(--white);
+    cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
+    flex-shrink: 0;
+  }
+  .upsell-item .chk svg { display: none; }
+  .upsell-item.checked .chk { background: var(--brand-primary); border-color: var(--brand-primary); }
+  .upsell-item.checked .chk svg { display: block; }
+  .upsell-buttons {
+    display: flex; gap: 20px; justify-content: center;
+  }
+
+  /* ============ Loyalty modal ============ */
+  .loyalty-modal {
+    background: var(--white);
+    border-radius: var(--radius-lg);
+    box-shadow: var(--modal-shadow);
+    width: 460px;
+    overflow: hidden;
+  }
+  .loyalty-header {
+    background: var(--loyalty-yellow);
+    color: var(--white);
+    text-align: center;
+    padding: 14px 20px;
+    font-size: 22px;
+    font-weight: 700;
+  }
+  .loyalty-body {
+    padding: 24px 30px 20px;
+    display: flex; flex-direction: column; gap: 18px;
+  }
+  .loyalty-input-row {
+    display: flex; align-items: center; gap: 10px;
+    padding: 8px 12px;
+    border-bottom: 1px solid var(--gray-1);
+  }
+  .loyalty-input-row input {
+    flex: 1;
+    border: 0;
+    outline: 0;
+    font-size: 22px;
+    color: var(--text-black);
+    font-family: inherit;
+    background: transparent;
+  }
+  .loyalty-input-row input::placeholder {
+    color: var(--gray-2);
+  }
+  .loyalty-input-row .clear-btn {
+    width: 32px; height: 32px;
+    background: var(--gray-BG);
+    border: 1px solid var(--gray-border);
+    border-radius: 4px;
+    color: var(--gray-title);
+    cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 16px;
+  }
+  .loyalty-keypad {
+    background: var(--gray-BG);
+    border-radius: var(--radius-md);
+    padding: 10px;
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 8px;
+  }
+  .loyalty-keypad button {
+    height: 52px;
+    background: var(--gray-1);
+    border: 0;
+    border-radius: 8px;
+    font-size: 26px;
+    font-weight: 700;
+    color: var(--gray-4);
+    cursor: pointer;
+    font-family: inherit;
+  }
+  .loyalty-keypad button:hover { background: var(--gray-border); }
+  .loyalty-keypad button.wide { grid-column: span 1; }
+  .loyalty-keypad .zero-btn { grid-column: 2; }
+  .loyalty-buttons {
+    display: flex; gap: 20px;
+    padding: 0 30px 24px;
+  }
+  .loyalty-buttons .btn {
+    flex: 1;
+    height: 54px;
+    border-radius: var(--radius-md);
+    font-size: 20px; font-weight: 700;
+    cursor: pointer;
+    border: 0;
+    font-family: inherit;
+  }
+  .loyalty-buttons .btn-cancel {
+    background: var(--gray-1);
+    color: var(--gray-title);
+  }
+  .loyalty-buttons .btn-confirm {
+    background: var(--brand-primary);
+    color: var(--white);
+  }
+
+  /* ============ Gift modal — spec node 21:6086 ============ */
+  .gift-modal {
+    background: var(--gray-BG);
+    border-radius: var(--radius-lg);
+    padding: 40px;
+    box-shadow: var(--modal-shadow);
+    display: flex; flex-direction: column; align-items: center;
+    min-width: 420px;
+  }
+  .gift-modal-title {
+    font-size: 40px; font-weight: 700;
+    color: var(--gray-black);
+    text-align: center; margin-bottom: 20px;
+  }
+  .gift-modal-subtitle {
+    font-size: 24px; color: var(--gray-4);
+    text-align: center; margin-bottom: 40px;
+  }
+  .gift-cards { display: flex; gap: 20px; margin-bottom: 60px; justify-content: center; }
+  .gift-card {
+    background: var(--white);
+    border: 2px solid transparent;
+    border-radius: 20px;
+    padding: 20px;
+    width: 294px; height: 240px;
+    display: flex; flex-direction: column; gap: 12px;
+    cursor: pointer; transition: all .15s;
+    box-shadow: 2px 4px 7px rgba(0,0,0,0.2);
+  }
+  .gift-card.checked { border-color: var(--brand-primary-alt); }
+  .gift-card-head { display: flex; align-items: center; gap: 12px; }
+  .gift-checkbox {
+    width: 28px; height: 28px;
+    border: 2.1px solid var(--brand-primary-alt);
+    border-radius: 10px;
+    background: var(--white);
+    display: flex; align-items: center; justify-content: center;
+    flex-shrink: 0;
+  }
+  .gift-card.checked .gift-checkbox { background: var(--brand-primary-alt); }
+  .gift-checkbox svg { display: none; }
+  .gift-card.checked .gift-checkbox svg { display: block; }
+  .gift-card-name {
+    font-size: 24px; font-weight: 400;
+    color: var(--gray-black);
+  }
+  .gift-card-body { display: flex; flex-direction: column; gap: 12px; }
+  .gift-card-price { font-size: 20px; color: var(--gray-black); }
+  .gift-card-price .original { text-decoration: line-through; font-weight: 400; }
+  .gift-card-price .free { font-weight: 700; }
+  .gift-card-desc { font-size: 20px; color: var(--gray-4); }
+  .gift-modal-buttons { display: flex; gap: 40px; justify-content: center; width: 100%; }
+  .gift-modal-buttons .btn {
+    width: 212px; height: 84px;
+    padding: 10px;
+    font-size: 24px;
+    border-radius: 8px;
+    min-width: unset;
+    box-shadow: 2px 4px 7px rgba(0,0,0,0.2);
+  }
+
+  /* ============ Shared buttons ============ */
+  .btn {
+    height: 64px;
+    padding: 0 40px;
+    border-radius: var(--radius-md);
+    font-size: 22px; font-weight: 700; line-height: 33px;
+    cursor: pointer; border: 0;
+    transition: all .15s;
+    font-family: inherit;
+    min-width: 180px;
+  }
+  .btn-outline {
+    background: var(--white);
+    border: 2px solid var(--brand-primary);
+    color: var(--brand-primary);
+  }
+  .btn-outline:hover { background: var(--brand-primary-light); }
+  .btn-primary { background: var(--brand-primary); color: var(--white); }
+  .btn-primary:hover { background: var(--brand-primary-alt); }
+  .btn-primary:disabled, .btn.disabled { background: var(--gray-1); color: var(--gray-2); cursor: not-allowed; }
+
+  /* ============================================
+     Payment Page V2
+     ============================================ */
+  .payment-page {
+    position: absolute; inset: 0;
+    display: flex; flex-direction: column;
+    background: var(--white);
+  }
+  .pay-header {
+    background: var(--header-navy);
+    height: 90px;
+    display: flex; align-items: center;
+    color: var(--white);
+    position: relative;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+    flex-shrink: 0;
+  }
+  .pay-header .close-btn {
+    position: absolute; left: 20px; top: 15px;
+    width: 60px; height: 60px;
+    background: transparent; border: 0; cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
+  }
+  .pay-header .close-btn svg { width: 60px; height: 60px; fill: none; stroke: var(--white); stroke-width: 2; }
+  .pay-header .title-block {
+    position: absolute; left: 448px; top: 25px;
+    display: flex; gap: 20px; align-items: center;
+  }
+  .pay-header .order-num { font-size: 36px; font-weight: 700; line-height: 30px; }
+  .pay-header .seat-info {
+    border-left: 2px solid var(--white); padding: 0 20px; height: 40px;
+    display: flex; align-items: center;
+    font-size: 36px; font-weight: 700; line-height: 30px;
+  }
+  .pay-content { display: flex; height: 678px; }
+  .pay-left {
+    width: 350px; display: flex;
+    background: var(--gray-bg);
+    border-left: 2px solid var(--gray-border);
+  }
+  .pay-left-col {
+    flex: 1; padding: 20px;
+    display: flex; flex-direction: column; gap: 20px;
+    border-right: 2px solid var(--gray-border);
+  }
+  .pay-left-col:last-child { border-right: 0; }
+  .pay-left-title { font-size: 24px; font-weight: 700; line-height: 30px; color: var(--text-black); }
+  .pay-options { display: flex; flex-direction: column; gap: 12px; flex: 1; }
+  .pay-option {
+    background: var(--white); border: 2px solid var(--gray-border);
+    border-radius: var(--radius-md); height: 100px;
+    display: flex; align-items: center; justify-content: center;
+    padding: 20px 8px;
+    font-size: 20px; line-height: 30px; color: var(--gray-title);
+    cursor: pointer; transition: all .15s;
+    flex-direction: column; gap: 4px; text-align: center;
+  }
+  .pay-option:hover { border-color: var(--brand-primary); }
+  .pay-option.selected { background: var(--brand-primary-light); border-color: var(--gray-border); }
+  .pay-option-logos { display: flex; gap: 4px; justify-content: center; margin-top: 4px; }
+  .pay-logo {
+    width: 32px; height: 32px; border-radius: var(--radius-sm);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 8px; font-weight: 700; color: var(--white);
+    line-height: 1; text-align: center; padding: 2px;
+  }
+  .pay-logo.linepay { background: #06C755; }
+  .pay-logo.jkopay { background: #E71C1C; }
+  .pay-logo.taiwanpay { background: #D44C8A; }
+
+  .pay-middle { width: 565px; display: flex; flex-direction: column; gap: 20px; }
+  .pay-tabs {
+    background: var(--white);
+    box-shadow: 0 1px 5px rgba(0,0,0,0.15);
+    padding-top: 20px;
+    display: flex; flex-direction: column;
+  }
+  .pay-tabs-row { display: flex; }
+  .pay-tab {
+    flex: 1; padding: 0 40px 20px; text-align: center;
+    font-size: 24px; font-weight: 700; line-height: 30px;
+    color: var(--text-black); cursor: pointer;
+    border-bottom: 4px solid transparent; transition: all .15s;
+  }
+  .pay-tab.active { color: var(--brand-primary); border-bottom-color: var(--brand-primary); }
+  .order-list { width: 525px; align-self: center; max-height: 518px; overflow-y: auto; }
+  .order-item {
+    display: flex; justify-content: space-between; align-items: flex-start;
+    border-bottom: 2px solid var(--gray-border);
+    padding: 10px;
+    min-height: 50px;
+  }
+  .order-item-name {
+    flex: 1;
+    font-size: 24px; line-height: 30px; color: var(--text-black);
+    display: flex; flex-direction: column; gap: 5px;
+  }
+  .order-item-prices {
+    display: flex; gap: 20px; justify-content: flex-end;
+    font-size: 24px; line-height: 30px; color: var(--text-black); text-align: right;
+  }
+  .order-item-prices .subtotal { width: 60px; }
+  .order-item-prices .original { text-decoration: line-through; }
+  .tag-gift {
+    background: var(--tag-gift); color: var(--white);
+    font-size: 14px; font-weight: 700;
+    padding: 4px 8px; border-radius: var(--radius-pill);
+    display: inline-flex; align-items: center;
+    align-self: flex-start; line-height: 1;
+  }
+
+  .pay-right {
+    width: 451px;
+    padding: 20px;
+    border-left: 2px solid var(--gray-border);
+    display: flex; flex-direction: column; gap: 20px;
+    position: relative;
+  }
+  .pay-right-content { flex: 1; display: flex; flex-direction: column; gap: 12px; }
+  .amount-due {
+    background: var(--white); border: 2px solid var(--brand-primary);
+    border-radius: var(--radius-md); height: 64px;
+    padding: 0 20px;
+    display: flex; align-items: center; justify-content: space-between;
+    font-size: 32px; font-weight: 700; color: var(--brand-primary); line-height: 50px;
+  }
+  .payment-input-block { display: flex; flex-direction: column; }
+  .payment-input-row {
+    display: flex; align-items: center; justify-content: space-between;
+    height: 72px; padding: 0 20px;
+  }
+  .payment-input-row.receive { background: var(--brand-primary-light); border-radius: 10px 10px 0 0; }
+  .payment-input-row.change { background: var(--gray-bg); border-radius: 0 0 10px 10px; height: 60px; }
+  .payment-input-row .label { font-size: 24px; font-weight: 700; line-height: 30px; color: var(--text-black); }
+  .payment-input-row.change .label { font-weight: 400; }
+  .payment-input-row .input-under {
+    width: 180px; border-bottom: 1px solid var(--text-black);
+    padding: 4px; text-align: right;
+    font-size: 24px; color: var(--gray-title);
+  }
+  .payment-input-row.change .input-under { width: 160px; border-bottom: 0; color: var(--text-black); }
+  .loyalty-row {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 0 20px; height: 38px;
+  }
+  .loyalty-row .label { font-size: 24px; line-height: 30px; }
+  .loyalty-row .input-under {
+    width: 180px; border-bottom: 1px solid var(--text-black);
+    padding: 4px; text-align: right;
+    font-size: 24px; color: var(--gray-title);
+  }
+  .keypad {
+    background: var(--gray-bg); border-radius: var(--radius-md);
+    height: 240px; padding: 12px;
+    display: flex; flex-direction: column; gap: 8px;
+  }
+  .keypad-row { flex: 1; display: flex; gap: 8px; }
+  .keypad-key {
+    flex: 1;
+    background: var(--gray-border); border-radius: var(--radius-md);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 25px; font-weight: 700; color: var(--gray-4);
+    cursor: pointer; border: 0; font-family: inherit; transition: all .1s;
+  }
+  .keypad-key:hover { background: #C9CACA; }
+  .keypad-key.outline {
+    background: var(--white); border: 2px solid var(--gray-border);
+  }
+  .keypad-key.outline:hover { background: var(--gray-BG); }
+  .keypad-key svg { width: 30px; height: 30px; }
+  .pay-buttons {
+    height: 120px; padding: 20px;
+    border-top: 2px solid var(--gray-border);
+    display: flex; gap: 20px; align-items: center;
+    margin: 0 -20px -20px;
+  }
+  .btn-continue {
+    height: 80px; padding: 0 12px;
+    border-radius: var(--radius-md);
+    border: 2px solid var(--brand-primary);
+    background: var(--white); color: var(--brand-primary);
+    font-size: 22px; font-weight: 700;
+    cursor: pointer; font-family: inherit;
+    width: 136px;
+    white-space: nowrap;
+    flex-shrink: 0;
+  }
+  .btn-continue:hover { background: var(--brand-primary-light); }
+  .btn-pay {
+    flex: 1; height: 80px; padding: 0 20px;
+    border-radius: var(--radius-md);
+    background: var(--warning); color: var(--gray-title);
+    font-size: 24px; font-weight: 700;
+    border: 0; cursor: pointer; font-family: inherit;
+    display: flex; align-items: center; justify-content: center; gap: 12px;
+  }
+  .btn-pay:hover { filter: brightness(0.95); }
+
+  /* Toast */
+  .toast {
+    position: fixed; bottom: 40px; left: 50%; transform: translateX(-50%);
+    background: rgba(0,0,0,0.85); color: #fff;
+    padding: 14px 24px; border-radius: 8px;
+    font-size: 14px; z-index: 2000;
+    opacity: 0; transition: opacity .3s; pointer-events: none;
+  }
+  .toast.show { opacity: 1; }
+</style>
+</head>
+<body>
+
+<!-- ============ Templates ============ -->
+<template id="tmpl-menu">
+  <div class="menu-layout">
+    <div class="menu-left-thin">
+      <div class="hamburger"><span></span><span></span><span></span></div>
+    </div>
+    <div class="menu-left-mode">
+      <div class="mode-btn dine">內用</div>
+      <div class="mode-btn active">外帶</div>
+      <div class="mode-btn dine">外送</div>
+      <div class="app-icon inline">inline</div>
+      <div class="app-icon ubereats">Uber<br>Eats</div>
+      <div class="app-icon foodpanda">🐼</div>
+      <div class="qrcode-btn">
+        <div class="qrbox"></div>
+        <span>新單 QRcode</span>
+      </div>
+    </div>
+    <div class="menu-top-nav">
+      <div class="cat-tab">鹽酥雞類</div>
+      <div class="cat-tab">串燒類</div>
+      <div class="cat-tab active">蔬菜類</div>
+      <div class="cat-tab">點心類</div>
+      <div class="cat-tab">飲料/甜點</div>
+      <div class="cat-tab">套餐</div>
+      <div class="cat-tab">票券零錢</div>
+      <div class="cat-tab">現金</div>
+    </div>
+    <div class="menu-grid">
+      <div class="food-card" data-name="花椰菜" data-price="100"><div class="qty-badge"></div><div class="name">花椰菜</div><div class="price">$ 100</div></div>
+      <div class="food-card" data-name="四季豆" data-price="100"><div class="qty-badge"></div><div class="name">四季豆</div><div class="price">$ 100</div></div>
+      <div class="food-card" data-name="香菇" data-price="100"><div class="qty-badge"></div><div class="name">香菇</div><div class="price">$ 100</div></div>
+      <div class="food-card" data-name="青椒" data-price="100"><div class="qty-badge"></div><div class="name">青椒</div><div class="price">$ 100</div></div>
+      <div class="food-card" data-name="玉米" data-price="100"><div class="qty-badge"></div><div class="name">玉米</div><div class="price">$ 100</div></div>
+      <div class="food-card" data-name="玉米筍(小玉米)" data-price="100"><div class="qty-badge"></div><div class="name">玉米筍(小玉米)</div><div class="price">$ 100</div></div>
+      <div class="food-card" data-name="杏鮑菇" data-price="100"><div class="qty-badge"></div><div class="name">杏鮑菇</div><div class="price">$ 100</div></div>
+      <div class="food-card" data-name="小黃瓜" data-price="100"><div class="qty-badge"></div><div class="name">小黃瓜</div><div class="price">$ 100</div></div>
+    </div>
+    <div class="menu-cart">
+      <div class="cart-header">
+        <span class="shop-name">電小二東科店</span>
+        <div class="shop-icon">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="7" width="14" height="14" rx="1"/><rect x="7" y="3" width="14" height="14" rx="1"/></svg>
+        </div>
+      </div>
+      <div class="cart-mode">
+        <span class="badge">外帶</span>
+        <div class="actions">
+          <button class="icon-btn" title="日期">📅</button>
+          <button class="icon-btn" title="新增">＋</button>
+        </div>
+      </div>
+      <div class="cart-items"></div>
+      <div class="cart-empty-hint">尚未加入品項<br><span style="opacity:0.6;font-size:14px;">請點擊左側菜單品項</span></div>
+      <div class="cart-bottom">
+        <div class="row">
+          <button class="out-btn">使用優惠券</button>
+          <button class="out-btn">兌換點數</button>
+        </div>
+        <div class="pay-row">
+          <button class="del-all" data-action="cart-clear" title="全部刪除">🗑</button>
+          <button class="pay-btn-menu" data-action="pay">
+            <span>付款</span>
+            <span class="pay-total">$ 0</span>
+            <span class="badge" style="display:none;">0</span>
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+</template>
+
+<template id="tmpl-payment">
+  <div class="payment-page">
+    <header class="pay-header">
+      <button class="close-btn" data-action="close" aria-label="關閉">
+        <svg viewBox="0 0 60 60"><circle cx="30" cy="30" r="24"/><path d="M22 22 L38 38 M38 22 L22 38" stroke-linecap="round"/></svg>
+      </button>
+      <div class="title-block">
+        <span class="order-num">訂單#005</span>
+        <span class="seat-info">內用A01 (POS)</span>
+      </div>
+    </header>
+    <div class="pay-content">
+      <div class="pay-left">
+        <div class="pay-left-col">
+          <div class="pay-left-title">付款方式</div>
+          <div class="pay-options">
+            <div class="pay-option selected"><span>現金</span></div>
+            <div class="pay-option"><span>信用卡</span></div>
+            <div class="pay-option">
+              <span>電子支付</span>
+              <div class="pay-option-logos">
+                <div class="pay-logo linepay">LINE<br>Pay</div>
+                <div class="pay-logo jkopay">街口</div>
+                <div class="pay-logo taiwanpay">台灣<br>Pay</div>
+              </div>
+            </div>
+            <div class="pay-option"><span>電子票證</span></div>
+            <div class="pay-option"><span>混合支付</span></div>
+          </div>
+        </div>
+        <div class="pay-left-col">
+          <div class="pay-left-title">發票類型</div>
+          <div class="pay-options">
+            <div class="pay-option selected"><span>紙本發票</span></div>
+            <div class="pay-option"><span>手機載具</span></div>
+            <div class="pay-option"><span>統一編號</span></div>
+            <div class="pay-option"><span>愛心捐贈</span></div>
+            <div class="pay-option"><span>不開發票</span></div>
+          </div>
+        </div>
+      </div>
+      <div class="pay-middle">
+        <div class="pay-tabs">
+          <div class="pay-tabs-row">
+            <div class="pay-tab active">訂單明細</div>
+            <div class="pay-tab">訂單註記</div>
+            <div class="pay-tab">優惠變價</div>
+          </div>
+        </div>
+        <div class="order-list">
+          <div class="order-item">
+            <div class="order-item-name">清燉牛肉麵</div>
+            <div class="order-item-prices"><span>$250</span><span>1</span><span class="subtotal">$250</span></div>
+          </div>
+          <div class="order-item">
+            <div class="order-item-name">紅燒牛肉麵</div>
+            <div class="order-item-prices"><span>$250</span><span>1</span><span class="subtotal">$250</span></div>
+          </div>
+          <div class="order-item" style="min-height:82px">
+            <div class="order-item-name">
+              <span>冰紅茶</span>
+              <span class="tag-gift">贈品</span>
+            </div>
+            <div class="order-item-prices"><span class="original">$30</span><span>1</span><span class="subtotal">$0</span></div>
+          </div>
+        </div>
+      </div>
+      <div class="pay-right">
+        <div class="pay-right-content">
+          <div class="amount-due"><span>應付</span><span>$600</span></div>
+          <div class="payment-input-block">
+            <div class="payment-input-row receive"><span class="label">收款</span><div class="input-under cash-received">請輸入金額</div></div>
+            <div class="payment-input-row change"><span class="label">找零</span><div class="input-under cash-change">＄0</div></div>
+          </div>
+          <div class="loyalty-row"><span class="label">消費集點</span><div class="input-under loyalty-phone">請輸入手機號碼</div></div>
+          <div class="keypad">
+            <div class="keypad-row"><button class="keypad-key" data-key="1">1</button><button class="keypad-key" data-key="2">2</button><button class="keypad-key" data-key="3">3</button></div>
+            <div class="keypad-row"><button class="keypad-key" data-key="4">4</button><button class="keypad-key" data-key="5">5</button><button class="keypad-key" data-key="6">6</button></div>
+            <div class="keypad-row"><button class="keypad-key" data-key="7">7</button><button class="keypad-key" data-key="8">8</button><button class="keypad-key" data-key="9">9</button></div>
+            <div class="keypad-row"><button class="keypad-key outline" data-key="C">C</button><button class="keypad-key" data-key="0">0</button><button class="keypad-key outline" data-key="DEL" aria-label="刪除"><svg viewBox="0 0 24 24" fill="none" stroke="#6C6C6C" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12l4-6h13a1 1 0 0 1 1 1v10a1 1 0 0 1-1 1H7l-4-6z"/><line x1="18" y1="9" x2="12" y2="15"/><line x1="12" y1="9" x2="18" y2="15"/></svg></button></div>
+          </div>
+        </div>
+        <div class="pay-buttons">
+          <button class="btn-continue" data-action="continue">繼續點餐</button>
+          <button class="btn-pay">確認付款</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</template>
+
+<!-- ============ Stage ============ -->
+<div class="stage">
+  <section class="screen active" id="screen-menu" data-tmpl="menu"></section>
+
+  <section class="screen" id="screen-gift" data-tmpl="payment">
+    <div class="modal-backdrop">
+      <div class="gift-modal" id="gift-modal-single">
+        <div class="gift-modal-title">滿額贈通知</div>
+        <div class="gift-modal-subtitle" id="gift-sub-single">已獲得 1 項贈品！</div>
+        <div class="gift-cards">
+          <div class="gift-card checked" data-gift="蘿蔔">
+            <div class="gift-card-head">
+              <div class="gift-checkbox"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg></div>
+              <div class="gift-card-name">滷蛋</div>
+            </div>
+            <div class="gift-card-price">$20 免費</div>
+            <div class="gift-card-desc">滿百贈滷蛋一顆</div>
+          </div>
+        </div>
+        <div class="gift-modal-buttons">
+          <button class="btn btn-outline" data-action="gift-dismiss">不需要</button>
+          <button class="btn btn-primary" id="btn-claim-single" data-action="gift-claim">領取 1 項</button>
+        </div>
+      </div>
+      <div class="gift-modal multi" id="gift-modal-multi" style="display:none;">
+        <div class="gift-modal-title">滿額贈通知</div>
+        <div class="gift-modal-subtitle" id="gift-sub-multi">已獲得 3 項贈品！</div>
+        <div class="gift-cards">
+          <div class="gift-card checked" data-gift="蘿蔔">
+            <div class="gift-card-head"><div class="gift-checkbox"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg></div><div class="gift-card-name">滷蛋</div></div>
+            <div class="gift-card-price">$20 免費</div>
+            <div class="gift-card-desc">滿百贈滷蛋一顆</div>
+          </div>
+          <div class="gift-card checked" data-gift="小菜">
+            <div class="gift-card-head"><div class="gift-checkbox"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg></div><div class="gift-card-name">小菜</div></div>
+            <div class="gift-card-price">$30 免費</div>
+            <div class="gift-card-desc">消費滿 200 贈小菜一盤</div>
+          </div>
+          <div class="gift-card checked" data-gift="冰紅茶">
+            <div class="gift-card-head"><div class="gift-checkbox"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg></div><div class="gift-card-name">冰紅茶</div></div>
+            <div class="gift-card-price">$30 免費</div>
+            <div class="gift-card-desc">消費滿 500 贈飲料一杯</div>
+          </div>
+        </div>
+        <div class="gift-modal-buttons">
+          <button class="btn btn-outline" data-action="gift-giveup">全部放棄</button>
+          <button class="btn btn-primary" id="btn-claim-multi" data-action="gift-claim">領取 3 項</button>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="screen" id="screen-upsell" data-tmpl="menu">
+    <div class="modal-backdrop">
+      <div class="upsell-modal">
+        <div class="upsell-title">
+          <span class="info-icon">i</span>
+          <span>請選擇加購品項</span>
+        </div>
+        <div class="upsell-item">
+          <div class="chk"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg></div>
+          <span>免洗餐具 $ 0</span>
+        </div>
+        <div class="upsell-buttons">
+          <button class="btn btn-outline" data-action="upsell-skip">不需要</button>
+          <button class="btn btn-primary" data-action="upsell-confirm">確認</button>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="screen" id="screen-loyalty" data-tmpl="payment">
+    <div class="modal-backdrop">
+      <div class="loyalty-modal">
+        <div class="loyalty-header">消費集點</div>
+        <div class="loyalty-body">
+          <div class="loyalty-input-row">
+            <input type="text" id="loyalty-phone-input" placeholder="請輸入手機號碼" readonly>
+            <button class="clear-btn" data-action="loyalty-clear" title="清除">✕</button>
+          </div>
+          <div class="loyalty-keypad" id="loyalty-keypad">
+            <button data-key="1">1</button>
+            <button data-key="2">2</button>
+            <button data-key="3">3</button>
+            <button data-key="4">4</button>
+            <button data-key="5">5</button>
+            <button data-key="6">6</button>
+            <button data-key="7">7</button>
+            <button data-key="8">8</button>
+            <button data-key="9">9</button>
+            <button></button>
+            <button data-key="0">0</button>
+            <button data-key="DEL" aria-label="退格">
+              <svg viewBox="0 0 24 24" width="26" height="26" fill="none" stroke="#646464" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12l4-6h13a1 1 0 0 1 1 1v10a1 1 0 0 1-1 1H7l-4-6z"/><line x1="18" y1="9" x2="12" y2="15"/><line x1="12" y1="9" x2="18" y2="15"/></svg>
+            </button>
+          </div>
+        </div>
+        <div class="loyalty-buttons">
+          <button class="btn btn-cancel" data-action="loyalty-cancel">取消</button>
+          <button class="btn btn-confirm" data-action="loyalty-confirm">確認</button>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="screen" id="screen-payment" data-tmpl="payment"></section>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+  // Hydrate screens with templates
+  const tmplMenu = document.getElementById('tmpl-menu');
+  const tmplPay  = document.getElementById('tmpl-payment');
+
+  document.querySelectorAll('.screen[data-tmpl="menu"]').forEach(s => {
+    const clone = tmplMenu.content.cloneNode(true);
+    s.prepend(clone);
+  });
+  document.querySelectorAll('.screen[data-tmpl="payment"]').forEach(s => {
+    const clone = tmplPay.content.cloneNode(true);
+    s.prepend(clone);
+  });
+
+  // ==== Screen switching ====
+  const screens = document.querySelectorAll('.screen');
+  let currentVariant = 'single';
+
+  // 贈品目錄：每項有自己的門檻
+  const GIFT_CATALOG = [
+    { name: '滷蛋',   price: 20, threshold: 100, desc: '滿百贈滷蛋一顆' },
+    { name: '小菜',   price: 30, threshold: 200, desc: '消費滿 200 贈小菜一盤' },
+    { name: '冰紅茶', price: 30, threshold: 500, desc: '消費滿 500 贈飲料一杯' },
+  ];
+  function getCartTotal() {
+    return Array.from(cart.values()).reduce((s, i) => s + i.qty * i.price, 0);
+  }
+  function getEligibleGifts() {
+    const total = getCartTotal();
+    return GIFT_CATALOG.filter(g => total >= g.threshold);
+  }
+  // 單品判斷：以「當下購物車金額」重試算，達門檻 → free；未達 → 原價
+  function isGiftEligible(gift) {
+    const cat = GIFT_CATALOG.find(c => c.name === gift.name);
+    return cat != null && getCartTotal() >= cat.threshold;
+  }
+
+  function showScreen(id) {
+    screens.forEach(s => s.classList.toggle('active', s.id === 'screen-' + id));
+  }
+  document.getElementById('gift-modal-multi').style.display = 'none';
+  document.getElementById('gift-modal-single').style.display = 'none';
+
+  function renderGiftModal(eligible) {
+    const isSingle = eligible.length === 1;
+    currentVariant = isSingle ? 'single' : 'multi';
+    document.getElementById('gift-modal-single').style.display = isSingle ? '' : 'none';
+    document.getElementById('gift-modal-multi').style.display  = !isSingle ? '' : 'none';
+
+    const modal = document.getElementById(isSingle ? 'gift-modal-single' : 'gift-modal-multi');
+    const cardsEl = modal.querySelector('.gift-cards');
+    cardsEl.innerHTML = eligible.map(g => `
+      <div class="gift-card checked" data-gift="${g.name}" data-price="${g.price}">
+        <div class="gift-card-head">
+          <div class="gift-checkbox">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
+              <polyline points="20 6 9 17 4 12"></polyline>
+            </svg>
+          </div>
+          <div class="gift-card-name">${g.name}</div>
+        </div>
+        <div class="gift-card-body">
+          <div class="gift-card-price">
+            <span class="original">$${g.price}</span> <span class="free">免費</span>
+          </div>
+          <div class="gift-card-desc">${g.desc}</div>
+        </div>
+      </div>
+    `).join('');
+
+    const subEl = modal.querySelector(isSingle ? '#gift-sub-single' : '#gift-sub-multi');
+    subEl.textContent = `已獲得 ${eligible.length} 項贈品！`;
+    updateClaimButtons();
+  }
+
+  // ==== Cart & gift state ====
+  const cart = new Map();  // name -> { name, price, qty }
+  let giftClaimed = [];    // [{ name, price }] — 0..N items
+
+  function addToCart(name, price) {
+    const item = cart.get(name) || { name, price, qty: 0 };
+    item.qty += 1;
+    cart.set(name, item);
+    renderAllState();
+  }
+  function changeQty(name, delta) {
+    const item = cart.get(name); if (!item) return;
+    item.qty += delta;
+    if (item.qty <= 0) cart.delete(name);
+    renderAllState();
+  }
+  function removeCartItem(name) {
+    cart.delete(name);
+    renderAllState();
+  }
+  function clearCart() { cart.clear(); giftClaimed = []; renderAllState(); }
+  function setGifts(gifts) {
+    giftClaimed = gifts.map(g => ({ name: g.name, price: g.price, qty: g.qty ?? 1 }));
+    renderAllState();
+  }
+  function changeGiftQty(name, delta) {
+    const g = giftClaimed.find(x => x.name === name); if (!g) return;
+    g.qty += delta;
+    if (g.qty <= 0) giftClaimed = giftClaimed.filter(x => x.name !== name);
+    renderAllState();
+  }
+  function removeGift(name) {
+    giftClaimed = giftClaimed.filter(x => x.name !== name);
+    renderAllState();
+  }
+
+  function renderAllState() { renderMenuState(); renderPaymentState(); }
+
+  function renderMenuState() {
+    document.querySelectorAll('.menu-layout').forEach(menuEl => {
+      // Update food cards
+      menuEl.querySelectorAll('.food-card').forEach(card => {
+        const name = card.dataset.name;
+        const item = cart.get(name);
+        const badge = card.querySelector('.qty-badge');
+        if (item) {
+          card.classList.add('selected');
+          badge.textContent = `X ${item.qty}`;
+        } else {
+          card.classList.remove('selected');
+          badge.textContent = '';
+        }
+      });
+      // Update cart list
+      const listEl = menuEl.querySelector('.cart-items');
+      listEl.innerHTML = '';
+      let totalQty = 0, totalPrice = 0;
+      for (const item of cart.values()) {
+        totalQty += item.qty;
+        totalPrice += item.qty * item.price;
+        const row = document.createElement('div');
+        row.className = 'cart-item';
+        row.innerHTML = `
+          <div class="item-name">${item.name}</div>
+          <div class="item-price">$ ${item.price}</div>
+          <div class="item-controls">
+            <span class="subprice">$ ${item.qty * item.price}</span>
+            <div class="qty-ctrl">
+              <button data-action="cart-minus" data-name="${item.name}">−</button>
+              <span class="qty">${item.qty}</span>
+              <button class="plus" data-action="cart-plus" data-name="${item.name}">＋</button>
+            </div>
+          </div>
+          <button class="trash-btn" data-action="cart-remove" data-name="${item.name}" title="刪除">🗑</button>
+        `;
+        listEl.appendChild(row);
+      }
+      // Gift items (贈品) - dashed divider first, then rows
+      // 動態計價：達門檻 = $0 (free)、未達門檻 = 原價並計入應付
+      if (giftClaimed.length > 0) {
+        const divider = document.createElement('div');
+        divider.className = 'cart-gift-divider';
+        listEl.appendChild(divider);
+      }
+      for (const gift of giftClaimed) {
+        const eligible = isGiftEligible(gift);
+        const lineSubtotal = eligible ? 0 : gift.qty * gift.price;
+        totalQty += gift.qty;
+        totalPrice += lineSubtotal;  // 未達門檻的贈品要付錢
+
+        const row = document.createElement('div');
+        row.className = 'cart-item gift' + (eligible ? '' : ' billed');
+        row.innerHTML = eligible ? `
+          <div class="item-name">
+            <span class="tag-gift">贈品</span>
+            <span>${gift.name}</span>
+          </div>
+          <div class="item-price">$ 0</div>
+          <div class="item-controls">
+            <span class="subprice original">$ ${gift.price}</span>
+            <div class="qty-ctrl">
+              <span class="qty-slot"></span>
+              <span class="qty">${gift.qty}</span>
+              <span class="qty-slot"></span>
+            </div>
+          </div>
+          <button class="trash-btn" data-action="gift-remove" data-name="${gift.name}" title="刪除">🗑</button>
+        ` : `
+          <div class="item-name">
+            <span class="tag-gift">贈品</span>
+            <span>${gift.name}</span>
+          </div>
+          <div class="item-price">$ ${gift.price}</div>
+          <div class="item-controls">
+            <span class="subprice">$ ${lineSubtotal}</span>
+            <div class="qty-ctrl">
+              <span class="qty-slot"></span>
+              <span class="qty">${gift.qty}</span>
+              <span class="qty-slot"></span>
+            </div>
+          </div>
+          <button class="trash-btn" data-action="gift-remove" data-name="${gift.name}" title="刪除">🗑</button>
+        `;
+        listEl.appendChild(row);
+      }
+      // Update pay button
+      const payBtn = menuEl.querySelector('.pay-btn-menu');
+      payBtn.querySelector('.pay-total').textContent = `$ ${totalPrice}`;
+      const badgeEl = payBtn.querySelector('.badge');
+      if (totalQty > 0) {
+        badgeEl.style.display = '';
+        badgeEl.textContent = totalQty;
+        payBtn.classList.remove('disabled');
+      } else {
+        badgeEl.style.display = 'none';
+        payBtn.classList.add('disabled');
+      }
+    });
+  }
+
+  function renderPaymentState() {
+    document.querySelectorAll('.payment-page').forEach(payEl => {
+      const listEl = payEl.querySelector('.order-list');
+      listEl.innerHTML = '';
+      let cartTotal = 0;
+      for (const item of cart.values()) {
+        cartTotal += item.qty * item.price;
+        const row = document.createElement('div');
+        row.className = 'order-item';
+        row.innerHTML = `
+          <div class="order-item-name">${item.name}</div>
+          <div class="order-item-prices">
+            <span>$${item.price}</span>
+            <span>${item.qty}</span>
+            <span class="subtotal">$${item.qty * item.price}</span>
+          </div>
+        `;
+        listEl.appendChild(row);
+      }
+      for (const gift of giftClaimed) {
+        const eligible = isGiftEligible(gift);
+        const lineSubtotal = eligible ? 0 : gift.qty * gift.price;
+        cartTotal += lineSubtotal;  // 未達門檻贈品計入應付
+        const row = document.createElement('div');
+        row.className = 'order-item';
+        row.style.minHeight = '82px';
+        row.innerHTML = eligible ? `
+          <div class="order-item-name">
+            <span>${gift.name}</span>
+            <span class="tag-gift">贈品</span>
+          </div>
+          <div class="order-item-prices">
+            <span class="original">$${gift.price}</span>
+            <span>${gift.qty}</span>
+            <span class="subtotal">$0</span>
+          </div>
+        ` : `
+          <div class="order-item-name">
+            <span>${gift.name}</span>
+            <span class="tag-gift">贈品</span>
+          </div>
+          <div class="order-item-prices">
+            <span>$${gift.price}</span>
+            <span>${gift.qty}</span>
+            <span class="subtotal">$${lineSubtotal}</span>
+          </div>
+        `;
+        listEl.appendChild(row);
+      }
+      const dueEl = payEl.querySelector('.amount-due span:last-child');
+      if (dueEl) dueEl.textContent = `$${cartTotal}`;
+    });
+  }
+
+  // Initial render (all menu + payment layouts sync to empty state)
+  renderAllState();
+
+  // ==== Food card click (add to cart) ====
+  document.body.addEventListener('click', (e) => {
+    const card = e.target.closest('.food-card');
+    if (card && card.closest('.menu-layout')) {
+      addToCart(card.dataset.name, parseInt(card.dataset.price, 10));
+      return;
+    }
+  });
+
+  // ==== Actions (event delegation) ====
+  document.body.addEventListener('click', (e) => {
+    const btn = e.target.closest('[data-action]');
+    if (!btn) return;
+    const action = btn.dataset.action;
+    const name = btn.dataset.name;
+    switch (action) {
+      // Menu flow
+      case 'pay':
+        if (cart.size === 0) { toast('請先加入品項'); return; }
+        showScreen('upsell');
+        break;
+      case 'upsell-skip':
+      case 'upsell-confirm': {
+        // 依購物車總額決定哪些贈品符合門檻
+        const eligible = getEligibleGifts();
+        if (eligible.length === 0) {
+          // 沒有任何贈品符合 → 跳過滿額贈通知
+          setGifts([]);
+          showScreen('loyalty');
+        } else {
+          renderGiftModal(eligible);
+          showScreen('gift');
+        }
+        break;
+      }
+      case 'gift-dismiss':
+      case 'gift-claim':
+      case 'gift-giveup': {
+        if (action === 'gift-claim') {
+          const modal = currentVariant === 'single'
+            ? document.getElementById('gift-modal-single')
+            : document.getElementById('gift-modal-multi');
+          const checkedCards = modal.querySelectorAll('.gift-card.checked');
+          if (checkedCards.length === 0) return;
+          const claimed = Array.from(checkedCards).map(card => {
+            const name = card.querySelector('.gift-card-name').textContent.trim();
+            const priceText = card.querySelector('.gift-card-price').textContent;
+            const m = priceText.match(/(\d+)/);
+            const price = m ? parseInt(m[1], 10) : 0;
+            return { name, price };
+          });
+          setGifts(claimed);
+          toast(`已領取 ${claimed.length} 項贈品`);
+        } else if (action === 'gift-dismiss') {
+          setGifts([]);
+          toast('已略過贈品');
+        } else {
+          setGifts([]);
+          toast('已放棄全部贈品');
+        }
+        showScreen('loyalty');
+        break;
+      }
+      case 'loyalty-cancel':
+      case 'loyalty-confirm':
+        showScreen('payment');
+        break;
+      case 'loyalty-clear': clearLoyaltyPhone(); break;
+      case 'continue':
+      case 'close':
+        // Keep cart + gifts, back to menu (resume ordering)
+        showScreen('menu');
+        break;
+      case 'cart-plus':   changeQty(name, 1); break;
+      case 'cart-minus':  changeQty(name, -1); break;
+      case 'cart-remove': removeCartItem(name); break;
+      case 'cart-clear':  clearCart(); break;
+      case 'gift-plus':   changeGiftQty(name, 1); break;
+      case 'gift-minus':  changeGiftQty(name, -1); break;
+      case 'gift-remove': removeGift(name); break;
+    }
+  });
+
+  // Gift card toggle (delegation — cards are rendered dynamically)
+  document.body.addEventListener('click', (e) => {
+    const giftCard = e.target.closest('.gift-card');
+    if (giftCard) {
+      giftCard.classList.toggle('checked');
+      updateClaimButtons();
+    }
+  });
+
+  // Upsell checkbox toggle
+  document.querySelectorAll('.upsell-item').forEach(item => {
+    item.addEventListener('click', (e) => {
+      if (e.target.closest('button')) return;
+      item.classList.toggle('checked');
+    });
+  });
+
+  // ==== Gift modal helpers ====
+  function updateClaimButtons() {
+    // Single modal button (subtitle is set in renderGiftModal, don't overwrite)
+    const sm = document.getElementById('gift-modal-single');
+    const singleChecked = sm.querySelectorAll('.gift-card.checked').length;
+    const btnS = document.getElementById('btn-claim-single');
+    btnS.textContent = `領取 ${singleChecked} 項`;
+    btnS.classList.toggle('disabled', singleChecked === 0);
+    btnS.disabled = singleChecked === 0;
+
+    // Multi modal button
+    const mm = document.getElementById('gift-modal-multi');
+    const multiChecked = mm.querySelectorAll('.gift-card.checked').length;
+    const btnM = document.getElementById('btn-claim-multi');
+    btnM.textContent = `領取 ${multiChecked} 項`;
+    btnM.classList.toggle('disabled', multiChecked === 0);
+    btnM.disabled = multiChecked === 0;
+  }
+
+  // ==== Loyalty keypad ====
+  const loyaltyInput = document.getElementById('loyalty-phone-input');
+  const loyaltyKeypad = document.getElementById('loyalty-keypad');
+  loyaltyKeypad.addEventListener('click', (e) => {
+    const k = e.target.closest('button')?.dataset.key;
+    if (!k) return;
+    let v = loyaltyInput.value;
+    if (k === 'DEL') v = v.slice(0, -1);
+    else v = (v + k).slice(0, 10);
+    loyaltyInput.value = v;
+  });
+  function clearLoyaltyPhone() { loyaltyInput.value = ''; }
+
+  // ==== Payment keypad (works for the copy in screen-payment only) ====
+  const AMOUNT_DUE = 600;
+  document.querySelectorAll('#screen-payment .keypad-key').forEach(k => {
+    k.addEventListener('click', () => {
+      const scr = document.getElementById('screen-payment');
+      const cashEl = scr.querySelector('.cash-received');
+      const changeEl = scr.querySelector('.cash-change');
+      let cur = cashEl.dataset.val || '';
+      const v = k.dataset.key;
+      if (v === 'C')       cur = '';
+      else if (v === 'DEL') cur = cur.slice(0, -1);
+      else                 cur = (cur + v).slice(0, 6);
+      cashEl.dataset.val = cur;
+      cashEl.textContent = cur ? '$' + cur : '請輸入金額';
+      cashEl.style.color = cur ? '#000' : '';
+      const change = Math.max(0, (parseInt(cur, 10) || 0) - AMOUNT_DUE);
+      changeEl.textContent = '$' + change;
+    });
+  });
+
+  // Toast
+  let toastTimer;
+  function toast(msg) {
+    const t = document.getElementById('toast');
+    t.textContent = msg;
+    t.classList.add('show');
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(() => t.classList.remove('show'), 1600);
+  }
+</script>
+</body>
+</html>
