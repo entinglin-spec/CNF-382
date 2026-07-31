@@ -1448,6 +1448,11 @@
         break;
       case 'upsell-skip':
       case 'upsell-confirm': {
+        // 已領取過贈品 → 直接跳過滿額贈通知（不重複詢問）
+        if (giftClaimed.length > 0) {
+          showScreen('loyalty');
+          break;
+        }
         // 依購物車總額決定哪些贈品符合門檻
         const eligible = getEligibleGifts();
         if (eligible.length === 0) {
